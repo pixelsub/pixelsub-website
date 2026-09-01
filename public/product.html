@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product — PixelSub</title>
+  <meta name="description" content="Buy premium digital products at the best prices in Bangladesh. Instant delivery & 24/7 support.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23e74c3c'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header (same as index) -->
+  <header class="header" id="header">
+    <div class="container header-inner">
+      <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <a href="index.html" class="logo">
+          <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+          <span>PixelSub</span>
+        </a>
+      </div>
+      <div class="search-bar" id="searchBar">
+        <form autocomplete="off" onsubmit="return false;">
+          <input type="search" id="searchInput" placeholder="Search products..." aria-label="Search products">
+          <button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
+        </form>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <div class="header-actions">
+        <button class="cart-btn" id="cartBtn" aria-label="Shopping cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+        <a href="#" class="login-btn" onclick="showToast('Login feature coming soon!', 'success'); return false;">
+          <i class="fas fa-user"></i> Login
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" id="breadcrumb">
+    <div class="container">
+      <a href="index.html">Home</a>
+      <span>»</span>
+      <a href="index.html#all-products">Products</a>
+      <span>»</span>
+      <strong id="breadcrumbName">Product Name</strong>
+    </div>
+  </nav>
+
+  <!-- Product Detail -->
+  <section class="product-detail">
+    <div class="container">
+      <div class="product-detail-grid">
+        <!-- Left: Image -->
+        <div class="pd-image-wrap">
+          <img id="pdImage" src="" alt="">
+        </div>
+
+        <!-- Right: Info -->
+        <div class="pd-info">
+          <h1 id="pdTitle"></h1>
+
+          <div class="pd-price" id="pdPriceRange"></div>
+
+          <ul class="pd-features" id="pdFeatures"></ul>
+
+          <!-- Duration Options -->
+          <div class="pd-duration" id="pdDurationSection">
+            <div class="pd-duration-label">Duration : <strong id="pdDurationLabel">1 Month</strong></div>
+            <div class="pd-duration-options" id="pdDurationOptions"></div>
+            <div style="margin-top: 6px;">
+              <a href="#" style="font-size: 0.8rem; color: #999; text-transform: uppercase;" onclick="return false;">Clear</a>
+            </div>
+          </div>
+
+          <!-- Selected Price -->
+          <div class="pd-selected-price" id="pdSelectedPrice"></div>
+
+          <!-- Buttons -->
+          <div class="pd-buttons">
+            <button class="pd-btn-buy" onclick="showToast('Buy Now feature coming soon! Contact us on WhatsApp.', 'success')">Buy Now</button>
+            <button class="pd-btn-cart" id="pdAddToCart" onclick="addToCartFromDetail()">Add to Cart</button>
+          </div>
+
+          <!-- Notice -->
+          <div class="pd-notice">
+            <p>› Read <a href="#">Terms & Conditions</a>, <a href="#">Refund Policy</a> Before Placing An Order.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Products -->
+  <section class="section" id="related-products" style="background: var(--bg-secondary);">
+    <div class="container">
+      <div class="section-divider">
+        <span class="line"></span>
+        <span class="label">Related Products</span>
+        <span class="line"></span>
+      </div>
+      <div class="products-grid" id="relatedProductsGrid"></div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-main">
+        <div class="footer-brand">
+          <a href="index.html" class="logo">
+            <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+            <span>PixelSub</span>
+          </a>
+          <p>PixelSub is your trusted source for premium digital products, software subscriptions, and online tools at the best prices in Bangladesh.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#all-products">All Products</a></li>
+            <li><a href="index.html#best-sellers">Best Sellers</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Categories</h4>
+          <ul>
+            <li><a href="index.html#categories">AI Tools</a></li>
+            <li><a href="index.html#categories">Writing Tools</a></li>
+            <li><a href="index.html#categories">Educational</a></li>
+            <li><a href="index.html#categories">Software</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Contact Us</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Refund Policy</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-bottom-inner">
+          <p>&copy; 2024 PixelSub. All rights reserved.</p>
+          <div class="payment-methods">
+            <span>We Accept:</span>
+            <div class="payment-icons">
+              <span class="payment-icon">bKash</span>
+              <span class="payment-icon">Nagad</span>
+              <span class="payment-icon">Rocket</span>
+              <span class="payment-icon">Bank</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h3><i class="fas fa-shopping-cart"></i> Shopping Cart</h3>
+      <button class="cart-close" id="cartClose" aria-label="Close cart"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty"><i class="fas fa-shopping-cart"></i><p>Your cart is empty</p></div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-subtotal">
+        <span>Subtotal:</span>
+        <span id="cartSubtotal">৳0</span>
+      </div>
+      <button class="checkout-btn" onclick="goToCheckout()"><i class="fas fa-lock"></i> Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scroll to Top -->
+  <button class="scroll-top" id="scrollTop" aria-label="Scroll to top"><i class="fas fa-chevron-up"></i></button>
+
+  <script src="script.js"></script>
+  <script>
+    // ===== Product Detail Page Logic =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const productId = parseInt(params.get('id'));
+
+      if (!productId || !products) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Set page title
+      document.title = `${product.name} — PixelSub`;
+
+      // Breadcrumb
+      document.getElementById('breadcrumbName').textContent = product.name;
+
+      // Image
+      document.getElementById('pdImage').src = product.image;
+      document.getElementById('pdImage').alt = product.name;
+
+      // Title
+      document.getElementById('pdTitle').textContent = product.name;
+
+      // Price range display
+      const priceRange = document.getElementById('pdPriceRange');
+      if (product.originalPrice) {
+        const discount = Math.round((1 - product.price / product.originalPrice) * 100);
+        priceRange.innerHTML = `
+          ৳${product.price.toLocaleString()}
+          <span class="pd-original">৳${product.originalPrice.toLocaleString()}</span>
+          <span class="pd-discount-pct">-${discount}%</span>
+        `;
+      } else {
+        priceRange.innerHTML = `৳${product.price.toLocaleString()}`;
+      }
+
+      // Features
+      const featuresList = document.getElementById('pdFeatures');
+      const features = product.description.split('. ').filter(f => f.trim());
+      const extraFeatures = [
+        "Lowest price guaranteed (Bangladesh)",
+        "Activated on your email",
+        "100% authentic subscription",
+        "Instant delivery after payment"
+      ];
+      featuresList.innerHTML = extraFeatures.map(f =>
+        `<li><i class="fas fa-check"></i> ${f}</li>`
+      ).join('');
+
+      // Duration options
+      const durations = [
+        { label: "1 Month", multiplier: 1 },
+        { label: "3 Months", multiplier: 2.5 },
+        { label: "6 Months", multiplier: 4.5 },
+        { label: "1 Year", multiplier: 8 }
+      ];
+
+      const durationOptions = document.getElementById('pdDurationOptions');
+      const durationLabel = document.getElementById('pdDurationLabel');
+      const selectedPrice = document.getElementById('pdSelectedPrice');
+      let currentDuration = durations[0];
+
+      durationOptions.innerHTML = durations.map((d, i) =>
+        `<button class="pd-duration-btn ${i === 0 ? 'active' : ''}" data-index="${i}">${d.label}</button>`
+      ).join('');
+
+      selectedPrice.innerHTML = `৳${product.price.toLocaleString()}`;
+
+      durationOptions.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pd-duration-btn');
+        if (!btn) return;
+        const idx = parseInt(btn.dataset.index);
+        currentDuration = durations[idx];
+
+        durationOptions.querySelectorAll('.pd-duration-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        durationLabel.textContent = currentDuration.label;
+        const dPrice = Math.round(product.price * currentDuration.multiplier);
+        selectedPrice.innerHTML = `৳${dPrice.toLocaleString()}`;
+      });
+
+      // Add to cart from detail page
+      window.addToCartFromDetail = () => {
+        addToCart(product.id);
+      };
+
+      // Related Products
+      const related = products
+        .filter(p => p.category === product.category && p.id !== product.id)
+        .slice(0, 4);
+
+      const fallback = related.length < 4
+        ? [...related, ...products.filter(p => p.id !== product.id && !related.includes(p)).slice(0, 4 - related.length)]
+        : related;
+
+      const grid = document.getElementById('relatedProductsGrid');
+      if (grid) {
+        grid.innerHTML = fallback.map(p => createProductCard(p)).join('');
+      }
+    });
+  </script>
+</body>
+</html>

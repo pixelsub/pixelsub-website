@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelSub | Premium Digital Products & Subscriptions</title>
+  <meta name="description" content="PixelSub is your trusted source for premium digital products, software subscriptions, and online tools at the best prices in Bangladesh.">
+  <meta property="og:title" content="PixelSub | Premium Digital Products & Subscriptions">
+  <meta property="og:description" content="Get ChatGPT Plus, Canva Pro, Office 365 and more at unbeatable prices. Instant delivery, 24/7 support.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%236c5ce7'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header class="header" id="header">
+    <div class="container header-inner">
+      <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <a href="#" class="logo">
+          <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+          <span>PixelSub</span>
+        </a>
+      </div>
+
+      <div class="search-bar" id="searchBar">
+        <form autocomplete="off" onsubmit="return false;">
+          <input type="search" id="searchInput" placeholder="Search products..." aria-label="Search products">
+          <button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
+        </form>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <div class="header-actions">
+        <button class="cart-btn" id="cartBtn" aria-label="Shopping cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+        <a href="#" class="login-btn" onclick="showToast('Login feature coming soon!', 'success'); return false;">
+          <i class="fas fa-user"></i> Login
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Mobile Navigation ===== -->
+  <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+  <nav class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-header">
+      <a href="#" class="logo">
+        <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+        <span>PixelSub</span>
+      </a>
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="mobile-nav-links">
+      <a href="#" class="active"><i class="fas fa-home"></i> Home</a>
+      <a href="#all-products"><i class="fas fa-th-large"></i> All Products</a>
+      <div class="mobile-nav-divider"></div>
+      <a href="#" onclick="filterByCategory('ai-tools'); return false;"><i class="fas fa-robot"></i> AI Tools</a>
+      <a href="#" onclick="filterByCategory('writing-tools'); return false;"><i class="fas fa-pen-fancy"></i> Writing Tools</a>
+      <a href="#" onclick="filterByCategory('educational'); return false;"><i class="fas fa-graduation-cap"></i> Educational</a>
+      <a href="#" onclick="filterByCategory('graphics-tools'); return false;"><i class="fas fa-palette"></i> Graphics Tools</a>
+      <a href="#" onclick="filterByCategory('graphics-resources'); return false;"><i class="fas fa-pen-nib"></i> Graphics Resources</a>
+      <a href="#" onclick="filterByCategory('software'); return false;"><i class="fas fa-laptop-code"></i> Software & Apps</a>
+      <a href="#" onclick="filterByCategory('vpn'); return false;"><i class="fas fa-shield-alt"></i> Premium VPN</a>
+      <a href="#" onclick="filterByCategory('streaming'); return false;"><i class="fas fa-play-circle"></i> Streaming</a>
+      <a href="#" onclick="filterByCategory('gaming'); return false;"><i class="fas fa-gamepad"></i> Gaming</a>
+      <a href="#" onclick="filterByCategory('marketing'); return false;"><i class="fas fa-chart-line"></i> Marketing Tools</a>
+      <a href="#" onclick="filterByCategory('gift-cards'); return false;"><i class="fas fa-gift"></i> Gift Cards</a>
+      <a href="#" onclick="filterByCategory('web-elements'); return false;"><i class="fas fa-code"></i> Web Elements</a>
+      <div class="mobile-nav-divider"></div>
+      <a href="#" onclick="showToast('Login feature coming soon!', 'success'); return false;"><i class="fas fa-sign-in-alt"></i> Login / Register</a>
+    </div>
+  </nav>
+
+  <!-- ===== Hero Carousel ===== -->
+  <section class="hero">
+    <div class="hero-carousel">
+      <div class="hero-track" id="heroTrack"></div>
+      <div class="hero-dots" id="heroDots"></div>
+    </div>
+  </section>
+
+  <!-- ===== Special Offer Section ===== -->
+  <section class="section" id="special-offers">
+    <div class="container">
+      <div class="section-divider">
+        <span class="line"></span>
+        <span class="label">🔥 Special Offers</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="product-slider-container">
+        <button class="slider-nav slider-prev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+        <div class="product-slider" id="specialOfferSlider"></div>
+        <button class="slider-nav slider-next" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Categories Section ===== -->
+  <section class="section" id="categories" style="padding-top: 20px;">
+    <div class="container">
+      <div class="section-title">
+        <h2>Browse Categories</h2>
+        <p>Find the perfect digital tool for your needs</p>
+      </div>
+      <div class="categories-grid" id="categoriesGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== Best Sellers Section ===== -->
+  <section class="section" id="best-sellers">
+    <div class="container">
+      <div class="section-divider">
+        <span class="line"></span>
+        <span class="label">⭐ Best Sellers</span>
+        <span class="line"></span>
+      </div>
+      <div class="products-grid" id="bestSellersGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== All Products Section ===== -->
+  <section class="section" id="all-products">
+    <div class="container">
+      <div class="section-title">
+        <h2>All Products</h2>
+        <p>Explore our complete collection of premium digital products</p>
+      </div>
+      <div class="products-grid" id="allProductsGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== Why Choose Us ===== -->
+  <section class="section" id="why-choose-us" style="background: var(--bg-secondary);">
+    <div class="container">
+      <div class="section-title">
+        <h2>Why Choose PixelSub?</h2>
+        <p>We provide the best digital products with unmatched service</p>
+      </div>
+      <div class="features-grid" id="featuresGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-main">
+        <div class="footer-brand">
+          <a href="#" class="logo">
+            <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+            <span>PixelSub</span>
+          </a>
+          <p>PixelSub is your trusted source for premium digital products, software subscriptions, and online tools at the best prices in Bangladesh. Instant delivery & 24/7 support.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#all-products">All Products</a></li>
+            <li><a href="#best-sellers">Best Sellers</a></li>
+            <li><a href="#special-offers">Special Offers</a></li>
+            <li><a href="#">My Account</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Categories</h4>
+          <ul>
+            <li><a href="#" onclick="filterByCategory('ai-tools'); return false;">AI Tools</a></li>
+            <li><a href="#" onclick="filterByCategory('writing-tools'); return false;">Writing Tools</a></li>
+            <li><a href="#" onclick="filterByCategory('educational'); return false;">Educational</a></li>
+            <li><a href="#" onclick="filterByCategory('graphics-tools'); return false;">Graphics Tools</a></li>
+            <li><a href="#" onclick="filterByCategory('streaming'); return false;">Streaming</a></li>
+            <li><a href="#" onclick="filterByCategory('software'); return false;">Software</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Contact Us</a></li>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Refund Policy</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-inner">
+          <p>&copy; 2024 PixelSub. All rights reserved. Product names are trademarks of their respective companies.</p>
+          <div class="payment-methods">
+            <span>We Accept:</span>
+            <div class="payment-icons">
+              <span class="payment-icon">bKash</span>
+              <span class="payment-icon">Nagad</span>
+              <span class="payment-icon">Rocket</span>
+              <span class="payment-icon">Bank</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== Cart Sidebar ===== -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h3><i class="fas fa-shopping-cart"></i> Shopping Cart</h3>
+      <button class="cart-close" id="cartClose" aria-label="Close cart">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty">
+        <i class="fas fa-shopping-cart"></i>
+        <p>Your cart is empty</p>
+      </div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-subtotal">
+        <span>Subtotal:</span>
+        <span id="cartSubtotal">৳0</span>
+      </div>
+      <button class="checkout-btn" onclick="goToCheckout()">
+        <i class="fas fa-lock"></i> Proceed to Checkout
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Quick View Modal ===== -->
+  <div class="modal-overlay" id="quickViewModal" onclick="if(event.target===this) closeQuickView();">
+    <div class="quick-view-modal">
+      <button class="modal-close-btn" onclick="closeQuickView()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="modal-content">
+        <div class="modal-image">
+          <img src="" alt="">
+        </div>
+        <div class="modal-details">
+          <h2></h2>
+          <div class="modal-price"></div>
+          <p class="modal-desc"></p>
+          <p class="modal-category">Category: <span></span></p>
+          <button class="modal-add-to-cart">
+            <i class="fas fa-cart-plus"></i> Add to Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Toast Container ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ===== Scroll to Top ===== -->
+  <button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+
+  <!-- Script -->
+  <script src="script.js"></script>
+</body>
+</html>
