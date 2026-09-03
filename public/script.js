@@ -164,11 +164,39 @@ function renderCategories() {
 }
 
 // ============ Render Special Offers ============
+function createOfferCard(product) {
+  const badgeHTML = product.badge ? `
+    <div class="product-badges">
+      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>
+    </div>
+  ` : '';
+  const priceHTML = product.originalPrice ? `
+    <span class="original-price">৳${product.originalPrice.toLocaleString()}</span>
+    <span class="current-price">৳${product.price.toLocaleString()}</span>
+  ` : `<span class="current-price">৳${product.price.toLocaleString()}</span>`;
+  const productUrl = `product.html?id=${product.id}`;
+  return `
+    <div class="product-card" data-id="${product.id}" data-category="${product.category}">
+      <div class="product-image" onclick="window.location.href='${productUrl}'">
+        <img src="${product.image}" alt="${product.name}" loading="lazy">
+        ${badgeHTML}
+      </div>
+      <div class="product-info">
+        <h4><a href="${productUrl}">${product.name}</a></h4>
+        <div class="product-price">${priceHTML}</div>
+        <button class="buy-now-btn" onclick="event.stopPropagation(); window.location.href='${productUrl}'">
+          <i class="fas fa-eye"></i> View Details
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderSpecialOffers() {
   const slider = document.getElementById('specialOfferSlider');
   if (!slider) return;
   const featured = products.filter(p => p.featured);
-  slider.innerHTML = featured.map(p => createProductCard(p)).join('');
+  slider.innerHTML = featured.map(p => createOfferCard(p)).join('');
   initProductSlider();
 }
 
