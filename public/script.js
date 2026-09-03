@@ -209,22 +209,19 @@ function createProductCard(product) {
 
   return `
     <div class="product-card" data-id="${product.id}" data-category="${product.category}">
-      <div class="product-image" onclick="window.location.href='${productUrl}'">
+      <div class="product-image" onclick="openProductModal(${product.id})">
         <img src="${product.image}" alt="${product.name}" loading="lazy">
         ${badgeHTML}
         <div class="product-actions">
-          <button class="product-action-btn" onclick="event.stopPropagation(); openQuickView(${product.id})" title="Quick View">
-            <i class="fas fa-eye"></i>
-          </button>
           <button class="product-action-btn add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${product.id})" title="Add to Cart">
             <i class="fas fa-cart-plus"></i>
           </button>
         </div>
       </div>
       <div class="product-info">
-        <h4><a href="${productUrl}">${product.name}</a></h4>
+        <h4><a href="#" onclick="event.preventDefault(); openProductModal(${product.id})">${product.name}</a></h4>
         <div class="product-price">${priceHTML}</div>
-        <button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${product.id})">
+        <button class="buy-now-btn" onclick="event.stopPropagation(); openProductModal(${product.id})">
           <i class="fas fa-bolt"></i> Buy Now
         </button>
       </div>
@@ -496,11 +493,145 @@ function goToCheckout() {
 }
 
 // ============ Buy Now (Direct Checkout) ============
-function buyNow(productId) {
+function buyNow(productId, plan, type) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
-  // Set cart to only this product
-  cart = [{ id: productId, qty: 1 }];
+  const planData = { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 };
+  const typeData = { 'shared': 1, 'personal': 1.8 };
+  const multiplier = (planData[plan] || 1) * (typeData[type] || 1);
+  const finalPrice = Math.round(product.price * multiplier);
+  const label = `${plan || '1-month'} / ${type || 'shared'}`;
+  cart = [{ id: productId, qty: 1, plan: plan || '1-month', type: type || 'shared', customPrice: finalPrice, label }];
   localStorage.setItem('pixelsub_cart', JSON.stringify(cart));
   window.location.href = 'checkout.html';
+}
+
+// ============ Product Modal ============
+let currentModalProduct = null;
+let selectedPlan = '1-month';
+let selectedType = 'shared';
+
+function openProductModal(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+  currentModalProduct = product;
+  selectedPlan = '1-month';
+  selectedType = 'shared';
+
+  // Remove existing modal
+  const old = document.getElementById('productModal');
+  if (old) old.remove();
+
+  const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
+
+  const modal = document.createElement('div');
+  modal.id = 'productModal';
+  modal.className = 'pm-overlay';
+  modal.innerHTML = `
+    <div class="pm-container">
+      <button class="pm-close" onclick="closeProductModal()"><i class="fas fa-times"></i></button>
+      <div class="pm-grid">
+        <div class="pm-image">
+          <img src="${product.image}" alt="${product.name}">
+          ${product.badge ? `<span class="pm-badge pm-badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>` : ''}
+        </div>
+        <div class="pm-details">
+          <h2 class="pm-title">${product.name}</h2>
+          <p class="pm-desc">${product.description || ''}</p>
+          <div class="pm-price-block">
+            ${product.originalPrice ? `<span class="pm-original">৳${product.originalPrice.toLocaleString()}</span>` : ''}
+            <span class="pm-current" id="pmPrice">৳${product.price.toLocaleString()}</span>
+            ${discount ? `<span class="pm-discount">${discount}% OFF</span>` : ''}
+          </div>
+
+          <div class="pm-option-group">
+            <label class="pm-label"><i class="fas fa-clock"></i> Plan Duration</label>
+            <div class="pm-options" id="pmPlans">
+              <button class="pm-opt active" data-plan="1-month" onclick="selectPlan(this)">1 Month</button>
+              <button class="pm-opt" data-plan="3-months" onclick="selectPlan(this)">3 Months</button>
+              <button class="pm-opt" data-plan="6-months" onclick="selectPlan(this)">6 Months</button>
+              <button class="pm-opt" data-plan="1-year" onclick="selectPlan(this)">1 Year</button>
+            </div>
+          </div>
+
+          <div class="pm-option-group">
+            <label class="pm-label"><i class="fas fa-user"></i> Account Type</label>
+            <div class="pm-options" id="pmTypes">
+              <button class="pm-opt active" data-type="shared" onclick="selectType(this)">
+                <i class="fas fa-users"></i> Shared
+              </button>
+              <button class="pm-opt" data-type="personal" onclick="selectType(this)">
+                <i class="fas fa-user-shield"></i> Personal
+              </button>
+            </div>
+          </div>
+
+          <div class="pm-final-price">
+            <span>Total Price:</span>
+            <strong id="pmFinalPrice">৳${product.price.toLocaleString()}</strong>
+          </div>
+
+          <div class="pm-actions">
+            <button class="pm-btn-buy" onclick="buyNow(${product.id}, selectedPlan, selectedType)">
+              <i class="fas fa-bolt"></i> Buy Now
+            </button>
+            <button class="pm-btn-cart" onclick="addToCart(${product.id}); closeProductModal();">
+              <i class="fas fa-cart-plus"></i> Add to Cart
+            </button>
+          </div>
+
+          <div class="pm-features">
+            <div class="pm-feat"><i class="fas fa-bolt"></i> Instant Delivery</div>
+            <div class="pm-feat"><i class="fas fa-headset"></i> 24/7 Support</div>
+            <div class="pm-feat"><i class="fas fa-shield-alt"></i> 100% Genuine</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => modal.classList.add('active'));
+
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeProductModal();
+  });
+
+  updateModalPrice();
+}
+
+function closeProductModal() {
+  const modal = document.getElementById('productModal');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
+    document.body.style.overflow = '';
+  }
+}
+
+function selectPlan(btn) {
+  document.querySelectorAll('#pmPlans .pm-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedPlan = btn.dataset.plan;
+  updateModalPrice();
+}
+
+function selectType(btn) {
+  document.querySelectorAll('#pmTypes .pm-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedType = btn.dataset.type;
+  updateModalPrice();
+}
+
+function updateModalPrice() {
+  if (!currentModalProduct) return;
+  const planMultipliers = { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 };
+  const typeMultipliers = { 'shared': 1, 'personal': 1.8 };
+  const price = Math.round(currentModalProduct.price * (planMultipliers[selectedPlan] || 1) * (typeMultipliers[selectedType] || 1));
+  const el = document.getElementById('pmFinalPrice');
+  if (el) el.textContent = `৳${price.toLocaleString()}`;
+  const priceEl = document.getElementById('pmPrice');
+  if (priceEl) priceEl.textContent = `৳${price.toLocaleString()}`;
 }

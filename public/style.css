@@ -1726,3 +1726,92 @@ input, select, textarea {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(231,76,60,0.3);
 }
+
+/* ===== Product Modal ===== */
+.pm-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s; padding: 20px;
+}
+.pm-overlay.active { opacity: 1; }
+.pm-container {
+  background: #fff; border-radius: 16px; max-width: 800px; width: 100%;
+  max-height: 90vh; overflow-y: auto; position: relative;
+  transform: scale(0.9) translateY(20px); transition: transform 0.3s;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+}
+.pm-overlay.active .pm-container { transform: scale(1) translateY(0); }
+.pm-close {
+  position: absolute; top: 12px; right: 12px; z-index: 10;
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,0.06); cursor: pointer; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.pm-close:hover { background: rgba(0,0,0,0.12); }
+.pm-grid { display: grid; grid-template-columns: 320px 1fr; }
+@media(max-width:700px) { .pm-grid { grid-template-columns: 1fr; } }
+.pm-image {
+  position: relative; background: #f8f8f8; display: flex;
+  align-items: center; justify-content: center; padding: 30px;
+  border-radius: 16px 0 0 16px; min-height: 250px;
+}
+@media(max-width:700px) { .pm-image { border-radius: 16px 16px 0 0; min-height: 200px; padding: 20px; } }
+.pm-image img { max-width: 100%; max-height: 280px; object-fit: contain; border-radius: 12px; }
+.pm-badge {
+  position: absolute; top: 16px; left: 16px; padding: 4px 12px;
+  border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: #fff;
+}
+.pm-badge-sale { background: #e74c3c; }
+.pm-badge-hot { background: #f39c12; }
+.pm-badge-new { background: #27ae60; }
+.pm-details { padding: 28px; }
+.pm-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; color: #1a1a2e; }
+.pm-desc { font-size: 0.85rem; color: #777; margin-bottom: 16px; line-height: 1.5; }
+.pm-price-block { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.pm-original { text-decoration: line-through; color: #ccc; font-size: 1rem; }
+.pm-current { font-size: 1.5rem; font-weight: 800; color: #e74c3c; }
+.pm-discount { background: #fff0f0; color: #e74c3c; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+
+.pm-option-group { margin-bottom: 16px; }
+.pm-label { display: block; font-size: 0.8rem; font-weight: 700; color: #555; margin-bottom: 8px; }
+.pm-label i { margin-right: 4px; }
+.pm-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.pm-opt {
+  padding: 8px 16px; border: 2px solid #eee; border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+  color: #555; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.pm-opt:hover { border-color: #e74c3c; color: #e74c3c; }
+.pm-opt.active { border-color: #e74c3c; background: #fff5f5; color: #e74c3c; }
+
+.pm-final-price {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f8f9fa; padding: 14px 18px; border-radius: 10px; margin: 16px 0;
+}
+.pm-final-price span { font-size: 0.9rem; color: #777; }
+.pm-final-price strong { font-size: 1.4rem; color: #e74c3c; }
+
+.pm-actions { display: flex; gap: 10px; margin-bottom: 16px; }
+.pm-btn-buy {
+  flex: 1; padding: 12px; background: #e74c3c; color: #fff; border: none;
+  border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.pm-btn-buy:hover { background: #c0392b; }
+.pm-btn-cart {
+  padding: 12px 18px; background: #f0f2f5; color: #333; border: none;
+  border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  transition: background 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.pm-btn-cart:hover { background: #e0e0e0; }
+
+.pm-features {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding-top: 14px; border-top: 1px solid #f0f0f0;
+}
+.pm-feat {
+  font-size: 0.75rem; color: #999; display: flex; align-items: center; gap: 4px;
+}
+.pm-feat i { color: #27ae60; }

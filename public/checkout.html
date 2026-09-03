@@ -321,15 +321,17 @@
       container.innerHTML = cart.map(item => {
         const product = products.find(p => p.id === item.id);
         if (!product) return '';
-        subtotal += product.price * item.qty;
+        const itemPrice = item.customPrice || product.price;
+        subtotal += itemPrice * item.qty;
+        const planLabel = item.label ? `<br><span class="oi-meta">${item.label}</span>` : '';
         return `
           <li class="order-item">
             <img src="${product.image}" alt="${product.name}">
             <div class="order-item-info">
               <h4>${product.name}</h4>
-              <span class="oi-meta">Qty: ${item.qty}</span>
+              <span class="oi-meta">Qty: ${item.qty}</span>${planLabel}
             </div>
-            <div class="order-item-price">৳${(product.price * item.qty).toLocaleString()}</div>
+            <div class="order-item-price">৳${(itemPrice * item.qty).toLocaleString()}</div>
           </li>
         `;
       }).join('');
