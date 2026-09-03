@@ -1702,3 +1702,27 @@ input, select, textarea {
   .features-grid { grid-template-columns: 1fr; }
   .pd-info h1 { font-size: 1.2rem; }
 }
+
+/* ===== Buy Now Button ===== */
+.buy-now-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 8px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.buy-now-btn:hover {
+  background: #c0392b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+}

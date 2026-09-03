@@ -84,7 +84,7 @@
 
           <!-- Buttons -->
           <div class="pd-buttons">
-            <button class="pd-btn-buy" onclick="showToast('Buy Now feature coming soon! Contact us on WhatsApp.', 'success')">Buy Now</button>
+            <button class="pd-btn-buy" onclick="buyNowFromDetail()">Buy Now</button>
             <button class="pd-btn-cart" id="pdAddToCart" onclick="addToCartFromDetail()">Add to Cart</button>
           </div>
 
@@ -288,6 +288,13 @@
       // Add to cart from detail page
       window.addToCartFromDetail = () => {
         addToCart(product.id);
+      };
+
+      // Buy Now from detail page (direct checkout)
+      window.buyNowFromDetail = () => {
+        let cart = [{ id: product.id, qty: 1 }];
+        localStorage.setItem('pixelsub_cart', JSON.stringify(cart));
+        window.location.href = 'checkout.html';
       };
 
       // Related Products

@@ -224,6 +224,9 @@ function createProductCard(product) {
       <div class="product-info">
         <h4><a href="${productUrl}">${product.name}</a></h4>
         <div class="product-price">${priceHTML}</div>
+        <button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${product.id})">
+          <i class="fas fa-bolt"></i> Buy Now
+        </button>
       </div>
     </div>
   `;
@@ -489,5 +492,15 @@ function showToast(message, type = 'success') {
 function goToCheckout() {
   if (cart.length === 0) { showToast('Your cart is empty!', 'error'); return; }
   closeCart();
+  window.location.href = 'checkout.html';
+}
+
+// ============ Buy Now (Direct Checkout) ============
+function buyNow(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+  // Set cart to only this product
+  cart = [{ id: productId, qty: 1 }];
+  localStorage.setItem('pixelsub_cart', JSON.stringify(cart));
   window.location.href = 'checkout.html';
 }
