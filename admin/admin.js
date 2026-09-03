@@ -87,6 +87,7 @@ function navigateTo(page) {
   const titles = {
     'dashboard': 'Dashboard',
     'products': 'Products',
+    'orders': 'Orders',
     'add-product': 'Add Product',
     'settings': 'Settings'
   };
@@ -95,6 +96,7 @@ function navigateTo(page) {
   // Load page data
   if (page === 'dashboard') loadDashboard();
   if (page === 'products') loadProducts();
+  if (page === 'orders') loadOrders();
   if (page === 'settings') loadSettings();
   if (page === 'add-product') resetProductForm();
 
@@ -342,6 +344,9 @@ async function loadSettings() {
     document.getElementById('sFacebook').value = settings.facebook || '';
     document.getElementById('sInstagram').value = settings.instagram || '';
     document.getElementById('sYoutube').value = settings.youtube || '';
+    document.getElementById('sBkash').value = settings.bkashNumber || '';
+    document.getElementById('sNagad').value = settings.nagadNumber || '';
+    document.getElementById('sRocket').value = settings.rocketNumber || '';
 
     if (settings.logoUrl) {
       document.getElementById('sLogoUrl').value = settings.logoUrl;
@@ -365,7 +370,10 @@ function initSettingsForm() {
       whatsapp: document.getElementById('sWhatsapp').value,
       facebook: document.getElementById('sFacebook').value,
       instagram: document.getElementById('sInstagram').value,
-      youtube: document.getElementById('sYoutube').value
+      youtube: document.getElementById('sYoutube').value,
+      bkashNumber: document.getElementById('sBkash').value,
+      nagadNumber: document.getElementById('sNagad').value,
+      rocketNumber: document.getElementById('sRocket').value
     };
 
     try {
@@ -424,4 +432,75 @@ function showToast(msg, type = 'success') {
   toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
+}
+
+// ===== Orders =====
+async function loadOrders() {
+  try {
+    const res = await fetch('/api/orders');
+    const orders = await res.json();
+    document.getElementById('orderCount').textContent = `${orders.length} orders`;
+
+    const tbody = document.getElementById('ordersTableBody');
+    if (orders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#999;">No orders yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = orders.map(o => {
+      const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+      const itemNames = items ? items.map(i => `${i.name} x${i.qty}`).join(', ') : '';
+      const date = new Date(o.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      const statusColors = { pending: '#f39c12', confirmed: '#27ae60', delivered: '#3498db', cancelled: '#e74c3c' };
+      const statusColor = statusColors[o.status] || '#999';
+
+      return `
+        <tr>
+          <td><strong>#${o.id}</strong></td>
+          <td>
+            <strong>${o.customer_name || ''}</strong><br>
+            <small style="color:#999;">${o.customer_phone || ''}</small>
+          </td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${itemNames}">${itemNames}</td>
+          <td><strong>৳${parseFloat(o.total || 0).toLocaleString()}</strong></td>
+          <td>${(o.payment_method || '').toUpperCase()}</td>
+          <td><code>${o.transaction_id || ''}</code></td>
+          <td>
+            <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:4px 8px;border-radius:6px;border:2px solid ${statusColor};color:${statusColor};font-weight:600;font-size:0.8rem;background:#fff;cursor:pointer;">
+              <option value="pending" ${o.status==='pending'?'selected':''}>⏳ Pending</option>
+              <option value="confirmed" ${o.status==='confirmed'?'selected':''}>✅ Confirmed</option>
+              <option value="delivered" ${o.status==='delivered'?'selected':''}>📦 Delivered</option>
+              <option value="cancelled" ${o.status==='cancelled'?'selected':''}>❌ Cancelled</option>
+            </select>
+          </td>
+          <td style="font-size:0.8rem;">${date}</td>
+          <td>
+            <button onclick="viewOrderWhatsApp(${o.id}, '${o.customer_phone}', '${o.customer_name}', ${o.total})" class="btn-icon" title="WhatsApp">
+              <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    showToast('Failed to load orders', 'error');
+  }
+}
+
+async function updateOrderStatus(orderId, status) {
+  try {
+    await fetch(`/api/orders/${orderId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    showToast(`Order #${orderId} → ${status}`, 'success');
+  } catch (e) {
+    showToast('Failed to update', 'error');
+  }
+}
+
+function viewOrderWhatsApp(id, phone, name, total) {
+  const msg = encodeURIComponent(`Hi ${name}, your Order #${id} (৳${total}) has been confirmed! Thank you for choosing PixelSub.`);
+  window.open(`https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${msg}`, '_blank');
 }

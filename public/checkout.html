@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — PixelSub</title>
+  <meta name="description" content="Complete your order at PixelSub. Pay with bKash, Nagad, or Rocket.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23e74c3c'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .checkout-page { padding: 100px 0 60px; min-height: 100vh; }
+    .checkout-grid { display: grid; grid-template-columns: 1fr 420px; gap: 30px; }
+    @media(max-width:900px) { .checkout-grid { grid-template-columns: 1fr; } }
+
+    .checkout-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; }
+    .checkout-card-header { padding: 18px 24px; border-bottom: 1px solid #f0f0f0; }
+    .checkout-card-header h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .checkout-card-header h2 i { color: #e74c3c; }
+    .checkout-card-body { padding: 24px; }
+
+    /* Order Summary */
+    .order-items { list-style: none; }
+    .order-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+    .order-item:last-child { border-bottom: none; }
+    .order-item img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; }
+    .order-item-info { flex: 1; }
+    .order-item-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+    .order-item-info .oi-meta { font-size: 0.8rem; color: #999; }
+    .order-item-price { font-weight: 700; color: #e74c3c; white-space: nowrap; }
+
+    .order-totals { margin-top: 16px; padding-top: 16px; border-top: 2px solid #f0f0f0; }
+    .order-total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+    .order-total-row.grand { font-size: 1.15rem; font-weight: 800; color: #e74c3c; padding-top: 12px; border-top: 2px solid #eee; margin-top: 8px; }
+
+    /* Form */
+    .co-form .form-group { margin-bottom: 16px; }
+    .co-form label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: #333; }
+    .co-form input, .co-form select, .co-form textarea {
+      width: 100%; padding: 11px 14px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 0.9rem; transition: border-color 0.2s;
+    }
+    .co-form input:focus, .co-form select:focus, .co-form textarea:focus {
+      border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(231,76,60,0.08); outline: none;
+    }
+    .co-form textarea { resize: vertical; min-height: 60px; }
+
+    /* Payment Methods */
+    .payment-methods { display: flex; flex-direction: column; gap: 10px; }
+    .payment-option {
+      border: 2px solid #eee; border-radius: 10px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .payment-option:hover { border-color: #ccc; }
+    .payment-option.active { border-color: #e74c3c; background: #fff5f5; }
+    .payment-option input[type="radio"] { accent-color: #e74c3c; width: 18px; height: 18px; }
+    .payment-option .pm-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; background: #f8f8f8; padding: 4px; }
+    .payment-option .pm-info h4 { font-size: 0.9rem; font-weight: 700; }
+    .payment-option .pm-info p { font-size: 0.75rem; color: #999; }
+
+    /* Payment Instructions */
+    .payment-instructions {
+      background: #f8fdf9; border: 1px solid #d4edda; border-radius: 10px;
+      padding: 16px; margin-top: 16px; display: none;
+    }
+    .payment-instructions.active { display: block; animation: fadeIn 0.3s; }
+    .payment-instructions h4 { font-size: 0.9rem; font-weight: 700; color: #27ae60; margin-bottom: 10px; }
+    .payment-instructions ol { padding-left: 20px; font-size: 0.85rem; color: #555; }
+    .payment-instructions ol li { margin-bottom: 6px; }
+    .payment-instructions .pay-number {
+      background: #e74c3c; color: #fff; padding: 10px 16px; border-radius: 8px;
+      font-size: 1.1rem; font-weight: 700; text-align: center; margin: 10px 0;
+      letter-spacing: 1px;
+    }
+
+    .trx-group { margin-top: 12px; }
+
+    /* Submit */
+    .btn-place-order {
+      width: 100%; padding: 14px; background: #e74c3c; color: #fff; border: none;
+      border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: background 0.2s; margin-top: 16px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-place-order:hover { background: #c0392b; }
+    .btn-place-order:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Success */
+    .order-success { text-align: center; padding: 60px 20px; display: none; }
+    .order-success.active { display: block; }
+    .order-success .success-icon { font-size: 4rem; color: #27ae60; margin-bottom: 16px; }
+    .order-success h2 { font-size: 1.5rem; margin-bottom: 8px; }
+    .order-success p { color: #666; margin-bottom: 20px; }
+    .order-success .order-id { background: #f0f2f5; padding: 10px 20px; border-radius: 8px; font-weight: 700; display: inline-block; margin-bottom: 20px; }
+
+    .empty-cart-msg { text-align: center; padding: 60px 20px; color: #999; }
+    .empty-cart-msg i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: 0.3; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="container header-inner">
+      <div class="header-left">
+        <a href="index.html" class="logo">
+          <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+          <span>PixelSub</span>
+        </a>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" class="login-btn"><i class="fas fa-arrow-left"></i> Back to Shop</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Checkout Content -->
+  <section class="checkout-page">
+    <div class="container">
+
+      <!-- Empty Cart Message -->
+      <div class="empty-cart-msg" id="emptyCart" style="display:none;">
+        <i class="fas fa-shopping-cart"></i>
+        <h2>Your cart is empty</h2>
+        <p>Add some products before checking out.</p>
+        <a href="index.html" class="btn-place-order" style="max-width:300px;margin:0 auto;text-decoration:none;">
+          <i class="fas fa-arrow-left"></i> Continue Shopping
+        </a>
+      </div>
+
+      <!-- Order Success -->
+      <div class="order-success" id="orderSuccess">
+        <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+        <h2>Order Placed Successfully! 🎉</h2>
+        <p>Thank you for your order. We'll verify your payment and deliver within 10 minutes.</p>
+        <div class="order-id" id="successOrderId">Order #0000</div>
+        <p style="font-size:0.85rem;">You will be redirected to WhatsApp to confirm your order.</p>
+        <a href="index.html" class="btn-place-order" style="max-width:300px;margin:16px auto 0;text-decoration:none;background:#27ae60;">
+          <i class="fas fa-home"></i> Back to Home
+        </a>
+      </div>
+
+      <!-- Checkout Form -->
+      <div class="checkout-grid" id="checkoutGrid">
+
+        <!-- Left: Customer Info + Payment -->
+        <div>
+          <!-- Customer Info -->
+          <div class="checkout-card" style="margin-bottom: 20px;">
+            <div class="checkout-card-header">
+              <h2><i class="fas fa-user"></i> Customer Information</h2>
+            </div>
+            <div class="checkout-card-body">
+              <form class="co-form" id="checkoutForm" onsubmit="return false;">
+                <div class="form-group">
+                  <label>Full Name *</label>
+                  <input type="text" id="coName" required placeholder="আপনার নাম">
+                </div>
+                <div class="form-group">
+                  <label>Email Address *</label>
+                  <input type="email" id="coEmail" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                  <label>Phone Number (WhatsApp) *</label>
+                  <input type="tel" id="coPhone" required placeholder="01XXXXXXXXX">
+                </div>
+                <div class="form-group">
+                  <label>Note (Optional)</label>
+                  <textarea id="coNote" placeholder="Any special instructions..."></textarea>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="checkout-card">
+            <div class="checkout-card-header">
+              <h2><i class="fas fa-credit-card"></i> Payment Method</h2>
+            </div>
+            <div class="checkout-card-body">
+              <div class="payment-methods" id="paymentMethods">
+                <label class="payment-option active" data-method="bkash">
+                  <input type="radio" name="payment" value="bkash" checked>
+                  <div class="pm-logo" style="background:#E2136E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.7rem;">bKash</div>
+                  <div class="pm-info">
+                    <h4>bKash</h4>
+                    <p>Send Money / Payment</p>
+                  </div>
+                </label>
+                <label class="payment-option" data-method="nagad">
+                  <input type="radio" name="payment" value="nagad">
+                  <div class="pm-logo" style="background:#F6921E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.7rem;">Nagad</div>
+                  <div class="pm-info">
+                    <h4>Nagad</h4>
+                    <p>Send Money / Payment</p>
+                  </div>
+                </label>
+                <label class="payment-option" data-method="rocket">
+                  <input type="radio" name="payment" value="rocket">
+                  <div class="pm-logo" style="background:#8B3A9F;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.7rem;">Rocket</div>
+                  <div class="pm-info">
+                    <h4>Rocket</h4>
+                    <p>Send Money / Payment</p>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Payment Instructions -->
+              <div class="payment-instructions active" id="paymentInstructions">
+                <h4><i class="fas fa-info-circle"></i> Payment Instructions</h4>
+                <ol>
+                  <li>Open your <strong id="methodName">bKash</strong> app</li>
+                  <li>Go to <strong>"Send Money"</strong></li>
+                  <li>Send the exact amount to:</li>
+                </ol>
+                <div class="pay-number" id="payNumber">01XXXXXXXXX</div>
+                <ol start="4">
+                  <li>Enter the <strong>Transaction ID (TrxID)</strong> below</li>
+                  <li>Click <strong>"Place Order"</strong></li>
+                </ol>
+
+                <div class="trx-group">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label>Transaction ID (TrxID) *</label>
+                    <input type="text" id="coTrxId" required placeholder="e.g. ABC123XYZ">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Order Summary -->
+        <div>
+          <div class="checkout-card" style="position:sticky;top:80px;">
+            <div class="checkout-card-header">
+              <h2><i class="fas fa-shopping-bag"></i> Order Summary</h2>
+            </div>
+            <div class="checkout-card-body">
+              <ul class="order-items" id="orderItems"></ul>
+              <div class="order-totals">
+                <div class="order-total-row">
+                  <span>Subtotal</span>
+                  <span id="coSubtotal">৳0</span>
+                </div>
+                <div class="order-total-row">
+                  <span>Delivery</span>
+                  <span style="color:#27ae60;">Free (Instant)</span>
+                </div>
+                <div class="order-total-row grand">
+                  <span>Total</span>
+                  <span id="coTotal">৳0</span>
+                </div>
+              </div>
+
+              <button class="btn-place-order" id="placeOrderBtn" onclick="placeOrder()">
+                <i class="fas fa-lock"></i> Place Order
+              </button>
+
+              <p style="text-align:center;font-size:0.75rem;color:#999;margin-top:10px;">
+                <i class="fas fa-shield-alt"></i> Your payment is secure. We deliver within 10 minutes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ===== Load cart & products =====
+    let products = [];
+    let cart = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
+
+    // Payment numbers (will be loaded from settings)
+    const paymentNumbers = {
+      bkash: '01XXXXXXXXX',
+      nagad: '01XXXXXXXXX',
+      rocket: '01XXXXXXXXX'
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Load products
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) products = await res.json();
+      } catch(e) {}
+
+      // Load settings for payment numbers
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const settings = await res.json();
+          if (settings.bkashNumber) paymentNumbers.bkash = settings.bkashNumber;
+          if (settings.nagadNumber) paymentNumbers.nagad = settings.nagadNumber;
+          if (settings.rocketNumber) paymentNumbers.rocket = settings.rocketNumber;
+        }
+      } catch(e) {}
+
+      if (cart.length === 0) {
+        document.getElementById('checkoutGrid').style.display = 'none';
+        document.getElementById('emptyCart').style.display = 'block';
+        return;
+      }
+
+      renderOrderSummary();
+      initPaymentMethods();
+      updatePaymentNumber('bkash');
+    });
+
+    function renderOrderSummary() {
+      const container = document.getElementById('orderItems');
+      let subtotal = 0;
+
+      container.innerHTML = cart.map(item => {
+        const product = products.find(p => p.id === item.id);
+        if (!product) return '';
+        subtotal += product.price * item.qty;
+        return `
+          <li class="order-item">
+            <img src="${product.image}" alt="${product.name}">
+            <div class="order-item-info">
+              <h4>${product.name}</h4>
+              <span class="oi-meta">Qty: ${item.qty}</span>
+            </div>
+            <div class="order-item-price">৳${(product.price * item.qty).toLocaleString()}</div>
+          </li>
+        `;
+      }).join('');
+
+      document.getElementById('coSubtotal').textContent = `৳${subtotal.toLocaleString()}`;
+      document.getElementById('coTotal').textContent = `৳${subtotal.toLocaleString()}`;
+    }
+
+    function initPaymentMethods() {
+      document.querySelectorAll('.payment-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('active'));
+          opt.classList.add('active');
+          const method = opt.dataset.method;
+          updatePaymentNumber(method);
+        });
+      });
+    }
+
+    function updatePaymentNumber(method) {
+      const names = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket' };
+      document.getElementById('methodName').textContent = names[method];
+      document.getElementById('payNumber').textContent = paymentNumbers[method] || '01XXXXXXXXX';
+      document.getElementById('paymentInstructions').classList.add('active');
+    }
+
+    async function placeOrder() {
+      const name = document.getElementById('coName').value.trim();
+      const email = document.getElementById('coEmail').value.trim();
+      const phone = document.getElementById('coPhone').value.trim();
+      const note = document.getElementById('coNote').value.trim();
+      const trxId = document.getElementById('coTrxId').value.trim();
+      const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value;
+
+      if (!name || !email || !phone) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+      }
+      if (!trxId) {
+        showToast('Please enter your Transaction ID', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('placeOrderBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+      // Calculate total
+      let total = 0;
+      const items = cart.map(item => {
+        const product = products.find(p => p.id === item.id);
+        if (!product) return null;
+        total += product.price * item.qty;
+        return { productId: product.id, name: product.name, price: product.price, qty: item.qty };
+      }).filter(Boolean);
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: name,
+            customerEmail: email,
+            customerPhone: phone,
+            note,
+            paymentMethod,
+            transactionId: trxId,
+            items,
+            total
+          })
+        });
+
+        if (res.ok) {
+          const order = await res.json();
+
+          // Clear cart
+          localStorage.removeItem('pixelsub_cart');
+          cart = [];
+
+          // Show success
+          document.getElementById('checkoutGrid').style.display = 'none';
+          document.getElementById('orderSuccess').style.display = 'block';
+          document.getElementById('successOrderId').textContent = `Order #${order.id}`;
+
+          // Redirect to WhatsApp after 2 seconds
+          setTimeout(() => {
+            const whatsappMsg = encodeURIComponent(
+              `🛒 New Order #${order.id}\n\n` +
+              `👤 Name: ${name}\n📧 Email: ${email}\n📱 Phone: ${phone}\n\n` +
+              `📦 Items:\n${items.map(i => `• ${i.name} x${i.qty} = ৳${(i.price * i.qty).toLocaleString()}`).join('\n')}\n\n` +
+              `💰 Total: ৳${total.toLocaleString()}\n💳 Payment: ${paymentMethod}\n🔢 TrxID: ${trxId}\n\n` +
+              `Please confirm and deliver. Thank you!`
+            );
+            // Open WhatsApp (replace number with actual)
+            window.open(`https://wa.me/?text=${whatsappMsg}`, '_blank');
+          }, 2000);
+        } else {
+          showToast('Order failed. Please try again.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-lock"></i> Place Order';
+        }
+      } catch(e) {
+        showToast('Server error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-lock"></i> Place Order';
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i><span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

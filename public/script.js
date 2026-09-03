@@ -489,5 +489,5 @@ function showToast(message, type = 'success') {
 function goToCheckout() {
   if (cart.length === 0) { showToast('Your cart is empty!', 'error'); return; }
   closeCart();
-  showToast('Checkout feature coming soon! Contact us on WhatsApp.', 'success');
+  window.location.href = 'checkout.html';
 }

@@ -50,6 +50,20 @@ async function initDB() {
         username VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        customer_name VARCHAR(255),
+        customer_email VARCHAR(255),
+        customer_phone VARCHAR(50),
+        note TEXT,
+        payment_method VARCHAR(50),
+        transaction_id VARCHAR(255),
+        items JSONB,
+        total DECIMAL(10,2),
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // Check if products exist
@@ -286,9 +300,37 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===== ORDERS API =====
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { customerName, customerEmail, customerPhone, note, paymentMethod, transactionId, items, total } = req.body;
+    const result = await pool.query(
+      'INSERT INTO orders (customer_name, customer_email, customer_phone, note, payment_method, transaction_id, items, total) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [customerName, customerEmail, customerPhone, note || '', paymentMethod, transactionId, JSON.stringify(items), total]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/orders', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/orders/:id/status', requireAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== Catch-all =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/product', (req, res) => res.sendFile(path.join(__dirname, 'public', 'product.html')));
+app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', 'checkout.html')));
 
 // ===== Start Server =====
 async function start() {

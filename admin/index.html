@@ -49,6 +49,7 @@
       <nav class="sidebar-nav">
         <a href="#" class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
         <a href="#" class="nav-item" data-page="products"><i class="fas fa-box"></i> Products</a>
+        <a href="#" class="nav-item" data-page="orders"><i class="fas fa-shopping-bag"></i> Orders</a>
         <a href="#" class="nav-item" data-page="add-product"><i class="fas fa-plus-circle"></i> Add Product</a>
         <a href="#" class="nav-item" data-page="settings"><i class="fas fa-cog"></i> Settings</a>
         <div class="nav-divider"></div>
@@ -233,6 +234,36 @@
           </div>
         </div>
 
+        <!-- ORDERS PAGE -->
+        <div class="page" id="page-orders">
+          <div class="card">
+            <div class="card-header">
+              <h3>All Orders</h3>
+              <span class="admin-badge" id="orderCount">0 orders</span>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Customer</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Payment</th>
+                      <th>TrxID</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- SETTINGS PAGE -->
         <div class="page" id="page-settings">
           <div class="card">
@@ -277,6 +308,24 @@
                     <label>YouTube URL</label>
                     <input type="text" id="sYoutube" placeholder="https://youtube.com/...">
                   </div>
+                </div>
+                <h4 style="margin:20px 0 12px;font-size:0.95rem;">💳 Payment Numbers</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>bKash Number</label>
+                    <input type="text" id="sBkash" placeholder="01XXXXXXXXX">
+                  </div>
+                  <div class="form-group">
+                    <label>Nagad Number</label>
+                    <input type="text" id="sNagad" placeholder="01XXXXXXXXX">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Rocket Number</label>
+                    <input type="text" id="sRocket" placeholder="01XXXXXXXXX">
+                  </div>
+                  <div class="form-group"></div>
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Settings</button>
               </form>
