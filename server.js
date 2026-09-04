@@ -7,7 +7,6 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const path = require('path');
-const fs = require('fs');
 const { Pool } = require('pg');
 
 const app = express();
@@ -31,10 +30,6 @@ if (!process.env.SESSION_SECRET) {
     '   Set SESSION_SECRET in your environment to keep sessions stable.'
   );
 }
-
-// ===== Ensure upload directory =====
-const uploadsDir = path.join(__dirname, 'uploads', 'products');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ===== Pricing rules (server-side source of truth) =====
 // The client may suggest a plan/type, but never a price.
@@ -138,6 +133,18 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_plans_product ON product_plans(product_id);
       CREATE INDEX IF NOT EXISTS idx_faqs_product ON product_faqs(product_id);
       CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);
+
+      -- Uploaded images live in the database because the host's filesystem is
+      -- ephemeral: every deploy replaces the container and would wipe files
+      -- written to disk, leaving rows pointing at images that no longer exist.
+      CREATE TABLE IF NOT EXISTS uploads (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        size_bytes INTEGER,
+        data BYTEA NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // Check if products exist
@@ -269,19 +276,22 @@ const orderLimiter = rateLimit({
 });
 
 // ===== File Upload Config =====
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `product-${Date.now()}${ext}`);
-  }
-});
+// Files are held in memory and written to the database, not to disk — see the
+// uploads table comment for why.
+const ALLOWED_IMAGE_EXT = /^\.(jpe?g|png|gif|webp|svg)$/i;
+const ALLOWED_IMAGE_MIME = /^image\/(jpeg|png|gif|webp|svg\+xml)$/i;
+
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp|svg/;
-    cb(null, allowed.test(path.extname(file.originalname).toLowerCase()) && allowed.test(file.mimetype));
+    const extOk = ALLOWED_IMAGE_EXT.test(path.extname(file.originalname));
+    const mimeOk = ALLOWED_IMAGE_MIME.test(file.mimetype);
+    if (extOk && mimeOk) return cb(null, true);
+    // Record why, so the route can explain the rejection instead of just
+    // reporting "no file uploaded".
+    req.uploadRejection = 'Only JPG, PNG, GIF, WEBP or SVG images are allowed.';
+    cb(null, false);
   }
 });
 
@@ -557,9 +567,63 @@ app.put('/api/products/:id/reviews', requireAuth, async (req, res) => {
 });
 
 // ===== UPLOAD API =====
-app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  res.json({ url: `/uploads/products/${req.file.filename}` });
+app.post('/api/upload', requireAuth, (req, res) => {
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      const tooBig = err.code === 'LIMIT_FILE_SIZE';
+      return res.status(400).json({
+        error: tooBig ? 'Image is larger than 5 MB.' : 'Upload failed.'
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: req.uploadRejection || 'No file uploaded' });
+    }
+
+    try {
+      const result = await pool.query(
+        'INSERT INTO uploads (filename, mime_type, size_bytes, data) VALUES ($1,$2,$3,$4) RETURNING id',
+        [
+          req.file.originalname.slice(0, 255),
+          req.file.mimetype,
+          req.file.size,
+          req.file.buffer
+        ]
+      );
+      res.json({ url: `/uploads/${result.rows[0].id}` });
+    } catch (e) {
+      console.error('Upload failed:', e.message);
+      res.status(500).json({ error: 'Could not save image.' });
+    }
+  });
+});
+
+// Serves an uploaded image. Cached hard because the id makes each URL unique —
+// a replaced image gets a new id, so a stale cache can never be served.
+app.get('/uploads/:id', async (req, res, next) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return next();
+  if (!HAS_DB) return res.status(503).send('Database not configured');
+
+  try {
+    const result = await pool.query(
+      'SELECT mime_type, data FROM uploads WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).send('Not found');
+
+    const { mime_type, data } = result.rows[0];
+    res.set({
+      'Content-Type': mime_type,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      // SVGs can carry script; block it since these are served same-origin.
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.send(data);
+  } catch (e) {
+    console.error('Image fetch failed:', e.message);
+    res.status(500).send('Error loading image');
+  }
 });
 
 // ===== SETTINGS API =====

@@ -81,7 +81,9 @@ function initNavigation() {
   });
 }
 
-function navigateTo(page) {
+// `resetForm` is false when arriving from editProduct(), which has already
+// filled the form — resetting here would wipe the id and save a new product.
+function navigateTo(page, { resetForm = true } = {}) {
   // Update nav
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
@@ -107,7 +109,7 @@ function navigateTo(page) {
   if (page === 'products') loadProducts();
   if (page === 'orders') loadOrders();
   if (page === 'settings') loadSettings();
-  if (page === 'add-product') resetProductForm();
+  if (page === 'add-product' && resetForm) resetProductForm();
 
   // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('active');
@@ -418,7 +420,7 @@ async function editProduct(id) {
     preview.style.display = 'block';
   }
 
-  navigateTo('add-product');
+  navigateTo('add-product', { resetForm: false });
   document.getElementById('pageTitle').textContent = 'Edit Product';
 
   // The list endpoint omits plans/FAQs/reviews, so fetch the full record.

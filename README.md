@@ -82,6 +82,20 @@ Site name, logo and social links come from Settings in the admin panel and are
 applied across the storefront at page load — no markup changes needed. Without
 an uploaded logo, the storefront falls back to the default bolt icon.
 
+## Uploaded images
+
+Images are stored in the `uploads` table as binary data and served from
+`/uploads/<id>`, not written to disk. Hosts like Railway replace the container
+on every deploy, so anything written to the filesystem is lost while the
+database rows still point at it — which showed up as product images and the
+logo disappearing after each push.
+
+Each URL is unique to its row, so responses are cached as immutable. Images are
+included in database backups. Limits: 5 MB per file, JPG/PNG/GIF/WEBP/SVG only.
+
+Images uploaded before this change were written to disk and are gone; those
+products need their image uploaded again.
+
 ## Project layout
 
 ```
@@ -92,7 +106,7 @@ uploads/products/  Uploaded product images
 ```
 
 Tables: `products`, `product_plans`, `product_faqs`, `product_reviews`,
-`orders`, `settings`, `admin_users`. All are created on first run.
+`orders`, `settings`, `admin_users`, `uploads`. All are created on first run.
 
 ## Notes
 
