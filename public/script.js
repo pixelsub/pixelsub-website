@@ -108,20 +108,22 @@ function applySocialLinks() {
 }
 
 // ============ Category Data ============
+// Icon colours stay distinct so categories are easy to tell apart, but sit in
+// the blue/teal range around the brand rather than a full rainbow.
 const categories = [
-  { id: "all", name: "All Products", icon: "fas fa-th-large", color: "#6c5ce7" },
-  { id: "ai-tools", name: "AI Tools", icon: "fas fa-robot", color: "#00cec9" },
-  { id: "writing-tools", name: "Writing Tools", icon: "fas fa-pen-fancy", color: "#fd79a8" },
-  { id: "educational", name: "Educational", icon: "fas fa-graduation-cap", color: "#fdcb6e" },
-  { id: "graphics-tools", name: "Graphics Tools", icon: "fas fa-palette", color: "#e17055" },
-  { id: "graphics-resources", name: "Graphics Resources", icon: "fas fa-pen-nib", color: "#00b894" },
-  { id: "software", name: "Software & Apps", icon: "fas fa-laptop-code", color: "#0984e3" },
-  { id: "vpn", name: "Premium VPN", icon: "fas fa-shield-alt", color: "#6c5ce7" },
-  { id: "streaming", name: "Streaming", icon: "fas fa-play-circle", color: "#e74c3c" },
-  { id: "gaming", name: "Gaming", icon: "fas fa-gamepad", color: "#2ecc71" },
-  { id: "marketing", name: "Marketing Tools", icon: "fas fa-chart-line", color: "#f39c12" },
-  { id: "gift-cards", name: "Gift Cards", icon: "fas fa-gift", color: "#e84393" },
-  { id: "web-elements", name: "Web Elements", icon: "fas fa-code", color: "#00cec9" }
+  { id: "all", name: "All Products", icon: "fas fa-th-large", color: "#1560f0" },
+  { id: "ai-tools", name: "AI Tools", icon: "fas fa-robot", color: "#0e9bb3" },
+  { id: "writing-tools", name: "Writing Tools", icon: "fas fa-pen-fancy", color: "#5b6ef5" },
+  { id: "educational", name: "Educational", icon: "fas fa-graduation-cap", color: "#e0a11b" },
+  { id: "graphics-tools", name: "Graphics Tools", icon: "fas fa-palette", color: "#7c5cf0" },
+  { id: "graphics-resources", name: "Graphics Resources", icon: "fas fa-pen-nib", color: "#12a37f" },
+  { id: "software", name: "Software & Apps", icon: "fas fa-laptop-code", color: "#0d47c4" },
+  { id: "vpn", name: "Premium VPN", icon: "fas fa-shield-alt", color: "#4d87f5" },
+  { id: "streaming", name: "Streaming", icon: "fas fa-play-circle", color: "#0e7490" },
+  { id: "gaming", name: "Gaming", icon: "fas fa-gamepad", color: "#12a37f" },
+  { id: "marketing", name: "Marketing Tools", icon: "fas fa-chart-line", color: "#c98a10" },
+  { id: "gift-cards", name: "Gift Cards", icon: "fas fa-gift", color: "#7c5cf0" },
+  { id: "web-elements", name: "Web Elements", icon: "fas fa-code", color: "#0e9bb3" }
 ];
 
 // ============ Cart State ============
@@ -180,19 +182,19 @@ function initHeroCarousel() {
 
   const slides = [
     {
-      gradient: "linear-gradient(135deg, #e74c3c 0%, #c0392b 60%, #a93226 100%)",
+      gradient: "linear-gradient(135deg, #1560f0 0%, #0d47c4 60%, #0a3694 100%)",
       title: "Premium Digital Products",
       subtitle: "Get access to top-tier tools at unbeatable prices",
       accent: "#ffffff"
     },
     {
-      gradient: "linear-gradient(135deg, #2c3e50 0%, #34495e 60%, #1a252f 100%)",
+      gradient: "linear-gradient(135deg, #1c2434 0%, #24304a 60%, #141a26 100%)",
       title: "ChatGPT Plus @ ৳650 Only",
       subtitle: "GPT-4o, DALL·E 3, Code Interpreter & more",
       accent: "#ffffff"
     },
     {
-      gradient: "linear-gradient(135deg, #8e44ad 0%, #6c3483 60%, #5b2c6f 100%)",
+      gradient: "linear-gradient(135deg, #12a37f 0%, #0e8265 60%, #0a6650 100%)",
       title: "Educational Combo Deals",
       subtitle: "Udemy + Coursera + Skillshare at best prices",
       accent: "#ffffff"

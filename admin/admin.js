@@ -169,7 +169,7 @@ function renderProductsTable() {
         <td><img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.src='https://via.placeholder.com/44'"></td>
         <td><strong>${esc(p.name)}</strong>${p.showFirst ? ' <span class="pin-tag"><i class="fas fa-thumbtack"></i> first</span>' : ''}</td>
         <td>${esc(p.category)}</td>
-        <td><strong style="color:#e74c3c;">৳${p.price.toLocaleString()}</strong>${p.originalPrice ? `<br><s style="color:#999;font-size:0.75rem;">৳${p.originalPrice.toLocaleString()}</s>` : ''}</td>
+        <td><strong style="color:#1560f0;">৳${p.price.toLocaleString()}</strong>${p.originalPrice ? `<br><s style="color:#999;font-size:0.75rem;">৳${p.originalPrice.toLocaleString()}</s>` : ''}</td>
         <td>${badgeHTML}</td>
         <td>${p.featured ? '<i class="fas fa-star" style="color:#f39c12;"></i>' : '—'}</td>
         <td>
@@ -676,7 +676,7 @@ async function loadOrders() {
       const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
       const itemNames = items ? items.map(i => `${i.name} x${i.qty}`).join(', ') : '';
       const date = new Date(o.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-      const statusColors = { pending: '#f39c12', confirmed: '#27ae60', delivered: '#3498db', cancelled: '#e74c3c' };
+      const statusColors = { pending: '#f39c12', confirmed: '#27ae60', delivered: '#3498db', cancelled: '#1560f0' };
       const statusColor = statusColors[o.status] || '#999';
 
       return `

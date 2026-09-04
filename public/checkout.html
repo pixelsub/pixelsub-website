@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout — PixelSub</title>
   <meta name="description" content="Complete your order at PixelSub. Pay with bKash, Nagad, or Rocket.">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23e74c3c'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%231560f0'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
   <style>
@@ -16,7 +16,7 @@
     .checkout-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; }
     .checkout-card-header { padding: 18px 24px; border-bottom: 1px solid #f0f0f0; }
     .checkout-card-header h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .checkout-card-header h2 i { color: #e74c3c; }
+    .checkout-card-header h2 i { color: var(--primary); }
     .checkout-card-body { padding: 24px; }
 
     /* Order Summary */
@@ -27,11 +27,11 @@
     .order-item-info { flex: 1; }
     .order-item-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
     .order-item-info .oi-meta { font-size: 0.8rem; color: #999; }
-    .order-item-price { font-weight: 700; color: #e74c3c; white-space: nowrap; }
+    .order-item-price { font-weight: 700; color: var(--primary); white-space: nowrap; }
 
     .order-totals { margin-top: 16px; padding-top: 16px; border-top: 2px solid #f0f0f0; }
     .order-total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
-    .order-total-row.grand { font-size: 1.15rem; font-weight: 800; color: #e74c3c; padding-top: 12px; border-top: 2px solid #eee; margin-top: 8px; }
+    .order-total-row.grand { font-size: 1.15rem; font-weight: 800; color: var(--primary); padding-top: 12px; border-top: 2px solid #eee; margin-top: 8px; }
 
     /* Form */
     .co-form .form-group { margin-bottom: 16px; }
@@ -41,7 +41,7 @@
       font-size: 0.9rem; transition: border-color 0.2s;
     }
     .co-form input:focus, .co-form select:focus, .co-form textarea:focus {
-      border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(231,76,60,0.08); outline: none;
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.08); outline: none;
     }
     .co-form textarea { resize: vertical; min-height: 60px; }
 
@@ -52,8 +52,8 @@
       display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;
     }
     .payment-option:hover { border-color: #ccc; }
-    .payment-option.active { border-color: #e74c3c; background: #fff5f5; }
-    .payment-option input[type="radio"] { accent-color: #e74c3c; width: 18px; height: 18px; }
+    .payment-option.active { border-color: var(--primary); background: var(--primary-wash); }
+    .payment-option input[type="radio"] { accent-color: var(--primary); width: 18px; height: 18px; }
     .payment-option .pm-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; background: #f8f8f8; padding: 4px; }
     .payment-option .pm-info h4 { font-size: 0.9rem; font-weight: 700; }
     .payment-option .pm-info p { font-size: 0.75rem; color: #999; }
@@ -68,7 +68,7 @@
     .payment-instructions ol { padding-left: 20px; font-size: 0.85rem; color: #555; }
     .payment-instructions ol li { margin-bottom: 6px; }
     .payment-instructions .pay-number {
-      background: #e74c3c; color: #fff; padding: 10px 16px; border-radius: 8px;
+      background: var(--primary); color: #fff; padding: 10px 16px; border-radius: 8px;
       font-size: 1.1rem; font-weight: 700; text-align: center; margin: 10px 0;
       letter-spacing: 1px;
     }
@@ -77,12 +77,12 @@
 
     /* Submit */
     .btn-place-order {
-      width: 100%; padding: 14px; background: #e74c3c; color: #fff; border: none;
+      width: 100%; padding: 14px; background: var(--primary); color: #fff; border: none;
       border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
       transition: background 0.2s; margin-top: 16px;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-place-order:hover { background: #c0392b; }
+    .btn-place-order:hover { background: var(--primary-dark); }
     .btn-place-order:disabled { background: #ccc; cursor: not-allowed; }
 
     /* Success */
