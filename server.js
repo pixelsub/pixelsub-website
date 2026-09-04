@@ -5,6 +5,7 @@ const session = require('express-session');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
@@ -16,11 +17,19 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 // Behind a proxy (Railway/Render/Heroku) so secure cookies and rate-limit IPs work.
 if (IS_PROD) app.set('trust proxy', 1);
 
-// ===== Required config check =====
-// Fail loudly at boot instead of leaking a weak default into production.
-if (IS_PROD && !process.env.SESSION_SECRET) {
-  console.error('❌ SESSION_SECRET is required when NODE_ENV=production. Refusing to start.');
-  process.exit(1);
+// ===== Session secret =====
+// Prefer a configured secret. If none is set we generate a random one rather than
+// falling back to a hardcoded default, which anyone reading the repo could use to
+// forge an admin session. The tradeoff: a generated secret only lives as long as
+// this process, so a restart invalidates existing admin logins.
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('base64url');
+
+if (!process.env.SESSION_SECRET) {
+  console.warn(
+    '⚠️  SESSION_SECRET is not set — using a random secret for this process only.\n' +
+    '   Admins will be logged out whenever the server restarts.\n' +
+    '   Set SESSION_SECRET in your environment to keep sessions stable.'
+  );
 }
 
 // ===== Ensure upload directory =====
@@ -176,7 +185,7 @@ async function initDB() {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'pixelsub-dev-only-secret',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
