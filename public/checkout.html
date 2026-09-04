@@ -278,6 +278,11 @@
     let products = [];
     let cart = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
 
+    let pricing = {
+      plans: { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 },
+      types: { shared: 1, personal: 1.8 }
+    };
+
     // Payment numbers (will be loaded from settings)
     const paymentNumbers = {
       bkash: '01XXXXXXXXX',
@@ -285,11 +290,32 @@
       rocket: '01XXXXXXXXX'
     };
 
+    // Store WhatsApp number for the post-order confirmation redirect.
+    let supportWhatsapp = '';
+
+    function priceFor(basePrice, plan, type) {
+      const planMult = pricing.plans[plan] ?? 1;
+      const typeMult = pricing.types[type] ?? 1;
+      return Math.round(basePrice * planMult * typeMult);
+    }
+
+    // Single place that decides what a cart line costs, used by both the
+    // summary and the order payload so they can never disagree.
+    function unitPriceFor(item, product) {
+      return item.customPrice ?? priceFor(product.price, item.plan, item.type);
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       // Load products
       try {
         const res = await fetch('/api/products');
         if (res.ok) products = await res.json();
+      } catch(e) {}
+
+      // Load pricing multipliers
+      try {
+        const res = await fetch('/api/pricing');
+        if (res.ok) pricing = await res.json();
       } catch(e) {}
 
       // Load settings for payment numbers
@@ -300,6 +326,7 @@
           if (settings.bkashNumber) paymentNumbers.bkash = settings.bkashNumber;
           if (settings.nagadNumber) paymentNumbers.nagad = settings.nagadNumber;
           if (settings.rocketNumber) paymentNumbers.rocket = settings.rocketNumber;
+          if (settings.whatsapp) supportWhatsapp = settings.whatsapp;
         }
       } catch(e) {}
 
@@ -321,7 +348,7 @@
       container.innerHTML = cart.map(item => {
         const product = products.find(p => p.id === item.id);
         if (!product) return '';
-        const itemPrice = item.customPrice || product.price;
+        const itemPrice = unitPriceFor(item, product);
         subtotal += itemPrice * item.qty;
         const planLabel = item.label ? `<br><span class="oi-meta">${item.label}</span>` : '';
         return `
@@ -379,14 +406,24 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
-      // Calculate total
-      let total = 0;
+      // Send the selection only — the server prices the order and returns the total.
       const items = cart.map(item => {
         const product = products.find(p => p.id === item.id);
         if (!product) return null;
-        total += product.price * item.qty;
-        return { productId: product.id, name: product.name, price: product.price, qty: item.qty };
+        return {
+          productId: product.id,
+          qty: item.qty,
+          plan: item.plan || '1-month',
+          type: item.type || 'shared'
+        };
       }).filter(Boolean);
+
+      if (items.length === 0) {
+        showToast('Your cart items are no longer available', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-lock"></i> Place Order';
+        return;
+      }
 
       try {
         const res = await fetch('/api/orders', {
@@ -399,13 +436,16 @@
             note,
             paymentMethod,
             transactionId: trxId,
-            items,
-            total
+            items
           })
         });
 
         if (res.ok) {
           const order = await res.json();
+
+          // Prices come back priced by the server — use those, not local guesses.
+          const orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+          const orderTotal = parseFloat(order.total || 0);
 
           // Clear cart
           localStorage.removeItem('pixelsub_cart');
@@ -418,18 +458,25 @@
 
           // Redirect to WhatsApp after 2 seconds
           setTimeout(() => {
+            const itemLines = orderItems
+              .map(i => `• ${i.name} (${i.plan} / ${i.type}) x${i.qty} = ৳${Number(i.lineTotal).toLocaleString()}`)
+              .join('\n');
+
             const whatsappMsg = encodeURIComponent(
               `🛒 New Order #${order.id}\n\n` +
               `👤 Name: ${name}\n📧 Email: ${email}\n📱 Phone: ${phone}\n\n` +
-              `📦 Items:\n${items.map(i => `• ${i.name} x${i.qty} = ৳${(i.price * i.qty).toLocaleString()}`).join('\n')}\n\n` +
-              `💰 Total: ৳${total.toLocaleString()}\n💳 Payment: ${paymentMethod}\n🔢 TrxID: ${trxId}\n\n` +
+              `📦 Items:\n${itemLines}\n\n` +
+              `💰 Total: ৳${orderTotal.toLocaleString()}\n💳 Payment: ${paymentMethod}\n🔢 TrxID: ${trxId}\n\n` +
               `Please confirm and deliver. Thank you!`
             );
-            // Open WhatsApp (replace number with actual)
-            window.open(`https://wa.me/?text=${whatsappMsg}`, '_blank');
+
+            // Send to the store's WhatsApp number from settings (digits only).
+            const target = supportWhatsapp.replace(/[^0-9]/g, '');
+            window.open(`https://wa.me/${target}?text=${whatsappMsg}`, '_blank');
           }, 2000);
         } else {
-          showToast('Order failed. Please try again.', 'error');
+          const data = await res.json().catch(() => ({}));
+          showToast(data.error || 'Order failed. Please try again.', 'error');
           btn.disabled = false;
           btn.innerHTML = '<i class="fas fa-lock"></i> Place Order';
         }

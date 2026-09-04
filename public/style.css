@@ -1018,6 +1018,13 @@ input, select, textarea {
   margin-bottom: 6px;
 }
 
+.cart-item-variant {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+
 .cart-item-controls {
   display: flex;
   align-items: center;

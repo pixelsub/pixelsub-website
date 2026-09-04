@@ -12,6 +12,39 @@ const fallbackProducts = [
 
 let products = [];
 
+// Pricing multipliers — overwritten by /api/pricing so the server stays authoritative.
+let pricing = {
+  plans: { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 },
+  types: { shared: 1, personal: 1.8 }
+};
+
+// Resolves once products (and pricing) are loaded. Pages that need product data
+// await this instead of racing the DOMContentLoaded handler below.
+let resolveProductsReady;
+const productsReady = new Promise(resolve => { resolveProductsReady = resolve; });
+
+async function loadProducts() {
+  try {
+    const res = await fetch('/api/products');
+    if (res.ok) {
+      const data = await res.json();
+      products = data.filter(p => p.active !== false);
+    } else {
+      products = fallbackProducts;
+    }
+  } catch (e) {
+    products = fallbackProducts;
+  }
+
+  try {
+    const res = await fetch('/api/pricing');
+    if (res.ok) pricing = await res.json();
+  } catch (e) { /* keep defaults */ }
+
+  resolveProductsReady(products);
+  return products;
+}
+
 // ============ Category Data ============
 const categories = [
   { id: "all", name: "All Products", icon: "fas fa-th-large", color: "#6c5ce7" },
@@ -34,18 +67,7 @@ let cart = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
 
 // ============ DOM Ready ============
 document.addEventListener('DOMContentLoaded', async () => {
-  // Try to load products from API
-  try {
-    const res = await fetch('/api/products');
-    if (res.ok) {
-      products = await res.json();
-      products = products.filter(p => p.active !== false);
-    } else {
-      products = fallbackProducts;
-    }
-  } catch (e) {
-    products = fallbackProducts;
-  }
+  await loadProducts();
 
   initHeroCarousel();
   renderCategories();
@@ -378,12 +400,32 @@ function closeCart() {
   document.body.style.overflow = '';
 }
 
-function addToCart(productId) {
+// A cart line is identified by product + plan + type, so "1 Year / Personal"
+// and "1 Month / Shared" of the same product stay separate lines.
+function cartKey(id, plan = '1-month', type = 'shared') {
+  return `${id}|${plan}|${type}`;
+}
+
+function addToCart(productId, plan = '1-month', type = 'shared') {
   const product = products.find(p => p.id === productId);
   if (!product) return;
-  const existing = cart.find(item => item.id === productId);
-  if (existing) existing.qty += 1;
-  else cart.push({ id: productId, qty: 1 });
+
+  const key = cartKey(productId, plan, type);
+  const existing = cart.find(item => cartKey(item.id, item.plan, item.type) === key);
+
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({
+      id: productId,
+      qty: 1,
+      plan,
+      type,
+      customPrice: priceFor(product.price, plan, type),
+      label: `${plan} / ${type}`
+    });
+  }
+
   saveCart();
   updateCartUI();
   showToast(`${product.name} added to cart!`, 'success');
@@ -391,16 +433,16 @@ function addToCart(productId) {
   if (badge) { badge.style.animation = 'pulse 0.3s ease'; setTimeout(() => badge.style.animation = '', 300); }
 }
 
-function removeFromCart(productId) {
-  cart = cart.filter(item => item.id !== productId);
+function removeFromCart(key) {
+  cart = cart.filter(item => cartKey(item.id, item.plan, item.type) !== key);
   saveCart(); updateCartUI(); renderCartItems();
 }
 
-function updateQty(productId, delta) {
-  const item = cart.find(item => item.id === productId);
+function updateQty(key, delta) {
+  const item = cart.find(i => cartKey(i.id, i.plan, i.type) === key);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) { removeFromCart(productId); return; }
+  if (item.qty <= 0) { removeFromCart(key); return; }
   saveCart(); updateCartUI(); renderCartItems();
 }
 
@@ -425,20 +467,27 @@ function renderCartItems() {
   container.innerHTML = cart.map(item => {
     const product = products.find(p => p.id === item.id);
     if (!product) return '';
-    subtotal += product.price * item.qty;
+
+    const unitPrice = item.customPrice ?? priceFor(product.price, item.plan, item.type);
+    subtotal += unitPrice * item.qty;
+
+    const key = cartKey(item.id, item.plan, item.type);
+    const variant = item.label ? `<div class="cart-item-variant">${item.label}</div>` : '';
+
     return `
       <div class="cart-item">
         <div class="cart-item-image"><img src="${product.image}" alt="${product.name}"></div>
         <div class="cart-item-info">
           <h4>${product.name}</h4>
-          <div class="cart-item-price">৳${product.price.toLocaleString()}</div>
+          ${variant}
+          <div class="cart-item-price">৳${unitPrice.toLocaleString()}</div>
           <div class="cart-item-controls">
-            <button class="qty-btn" onclick="updateQty(${product.id}, -1)"><i class="fas fa-minus"></i></button>
+            <button class="qty-btn" onclick="updateQty('${key}', -1)"><i class="fas fa-minus"></i></button>
             <span class="cart-item-qty">${item.qty}</span>
-            <button class="qty-btn" onclick="updateQty(${product.id}, 1)"><i class="fas fa-plus"></i></button>
+            <button class="qty-btn" onclick="updateQty('${key}', 1)"><i class="fas fa-plus"></i></button>
           </div>
         </div>
-        <button class="cart-item-remove" onclick="removeFromCart(${product.id})"><i class="fas fa-trash-alt"></i></button>
+        <button class="cart-item-remove" onclick="removeFromCart('${key}')"><i class="fas fa-trash-alt"></i></button>
       </div>
     `;
   }).join('');
@@ -521,16 +570,26 @@ function goToCheckout() {
 }
 
 // ============ Buy Now (Direct Checkout) ============
+function priceFor(basePrice, plan, type) {
+  const planMult = pricing.plans[plan] ?? 1;
+  const typeMult = pricing.types[type] ?? 1;
+  return Math.round(basePrice * planMult * typeMult);
+}
+
 function buyNow(productId, plan, type) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
-  const planData = { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 };
-  const typeData = { 'shared': 1, 'personal': 1.8 };
-  const multiplier = (planData[plan] || 1) * (typeData[type] || 1);
-  const finalPrice = Math.round(product.price * multiplier);
-  const label = `${plan || '1-month'} / ${type || 'shared'}`;
-  cart = [{ id: productId, qty: 1, plan: plan || '1-month', type: type || 'shared', customPrice: finalPrice, label }];
-  localStorage.setItem('pixelsub_cart', JSON.stringify(cart));
+  const chosenPlan = plan || '1-month';
+  const chosenType = type || 'shared';
+  cart = [{
+    id: productId,
+    qty: 1,
+    plan: chosenPlan,
+    type: chosenType,
+    customPrice: priceFor(product.price, chosenPlan, chosenType),
+    label: `${chosenPlan} / ${chosenType}`
+  }];
+  saveCart();
   window.location.href = 'checkout.html';
 }
 
@@ -603,7 +662,7 @@ function openProductModal(productId) {
             <button class="pm-btn-buy" onclick="buyNow(${product.id}, selectedPlan, selectedType)">
               <i class="fas fa-bolt"></i> Buy Now
             </button>
-            <button class="pm-btn-cart" onclick="addToCart(${product.id}); closeProductModal();">
+            <button class="pm-btn-cart" onclick="addToCart(${product.id}, selectedPlan, selectedType); closeProductModal();">
               <i class="fas fa-cart-plus"></i> Add to Cart
             </button>
           </div>
@@ -655,9 +714,7 @@ function selectType(btn) {
 
 function updateModalPrice() {
   if (!currentModalProduct) return;
-  const planMultipliers = { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 };
-  const typeMultipliers = { 'shared': 1, 'personal': 1.8 };
-  const price = Math.round(currentModalProduct.price * (planMultipliers[selectedPlan] || 1) * (typeMultipliers[selectedType] || 1));
+  const price = priceFor(currentModalProduct.price, selectedPlan, selectedType);
   const el = document.getElementById('pmFinalPrice');
   if (el) el.textContent = `৳${price.toLocaleString()}`;
   const priceEl = document.getElementById('pmPrice');

@@ -198,11 +198,14 @@
   <script src="script.js"></script>
   <script>
     // ===== Product Detail Page Logic =====
-    document.addEventListener('DOMContentLoaded', () => {
+    // Waits for productsReady (from script.js) so we never read an empty products array.
+    document.addEventListener('DOMContentLoaded', async () => {
+      await productsReady;
+
       const params = new URLSearchParams(window.location.search);
       const productId = parseInt(params.get('id'));
 
-      if (!productId || !products) {
+      if (!Number.isInteger(productId)) {
         window.location.href = 'index.html';
         return;
       }
@@ -241,7 +244,6 @@
 
       // Features
       const featuresList = document.getElementById('pdFeatures');
-      const features = product.description.split('. ').filter(f => f.trim());
       const extraFeatures = [
         "Lowest price guaranteed (Bangladesh)",
         "Activated on your email",
@@ -252,49 +254,49 @@
         `<li><i class="fas fa-check"></i> ${f}</li>`
       ).join('');
 
-      // Duration options
+      // Duration options — plan keys match the server's PLAN_MULTIPLIERS.
       const durations = [
-        { label: "1 Month", multiplier: 1 },
-        { label: "3 Months", multiplier: 2.5 },
-        { label: "6 Months", multiplier: 4.5 },
-        { label: "1 Year", multiplier: 8 }
+        { plan: '1-month', label: '1 Month' },
+        { plan: '3-months', label: '3 Months' },
+        { plan: '6-months', label: '6 Months' },
+        { plan: '1-year', label: '1 Year' }
       ];
 
       const durationOptions = document.getElementById('pdDurationOptions');
       const durationLabel = document.getElementById('pdDurationLabel');
       const selectedPrice = document.getElementById('pdSelectedPrice');
-      let currentDuration = durations[0];
+      let selectedPlan = durations[0].plan;
+      const selectedType = 'shared';
 
       durationOptions.innerHTML = durations.map((d, i) =>
-        `<button class="pd-duration-btn ${i === 0 ? 'active' : ''}" data-index="${i}">${d.label}</button>`
+        `<button class="pd-duration-btn ${i === 0 ? 'active' : ''}" data-plan="${d.plan}">${d.label}</button>`
       ).join('');
 
-      selectedPrice.innerHTML = `৳${product.price.toLocaleString()}`;
+      function renderSelectedPrice() {
+        selectedPrice.innerHTML = `৳${priceFor(product.price, selectedPlan, selectedType).toLocaleString()}`;
+      }
+      renderSelectedPrice();
 
       durationOptions.addEventListener('click', (e) => {
         const btn = e.target.closest('.pd-duration-btn');
         if (!btn) return;
-        const idx = parseInt(btn.dataset.index);
-        currentDuration = durations[idx];
 
+        selectedPlan = btn.dataset.plan;
         durationOptions.querySelectorAll('.pd-duration-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
-        durationLabel.textContent = currentDuration.label;
-        const dPrice = Math.round(product.price * currentDuration.multiplier);
-        selectedPrice.innerHTML = `৳${dPrice.toLocaleString()}`;
+        durationLabel.textContent = durations.find(d => d.plan === selectedPlan).label;
+        renderSelectedPrice();
       });
 
-      // Add to cart from detail page
+      // Add to cart from detail page — carries the chosen duration.
       window.addToCartFromDetail = () => {
-        addToCart(product.id);
+        addToCart(product.id, selectedPlan, selectedType);
       };
 
       // Buy Now from detail page (direct checkout)
       window.buyNowFromDetail = () => {
-        let cart = [{ id: product.id, qty: 1 }];
-        localStorage.setItem('pixelsub_cart', JSON.stringify(cart));
-        window.location.href = 'checkout.html';
+        buyNow(product.id, selectedPlan, selectedType);
       };
 
       // Related Products

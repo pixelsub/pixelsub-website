@@ -1,6 +1,15 @@
 // ===== Admin Panel JavaScript =====
 
 let allProducts = [];
+let allOrders = [];
+
+// Escape untrusted text before putting it in innerHTML. Order fields come
+// straight from customers, so they must never be treated as markup.
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -155,9 +164,9 @@ function renderProductsTable() {
 
     return `
       <tr>
-        <td><img src="${p.image}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/44'"></td>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.category}</td>
+        <td><img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.src='https://via.placeholder.com/44'"></td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td>${esc(p.category)}</td>
         <td><strong style="color:#e74c3c;">৳${p.price.toLocaleString()}</strong>${p.originalPrice ? `<br><s style="color:#999;font-size:0.75rem;">৳${p.originalPrice.toLocaleString()}</s>` : ''}</td>
         <td>${badgeHTML}</td>
         <td>${p.featured ? '<i class="fas fa-star" style="color:#f39c12;"></i>' : '—'}</td>
@@ -326,6 +335,11 @@ async function confirmDelete() {
       showToast('Product deleted', 'success');
       closeDeleteModal();
       loadProducts();
+    } else if (res.status === 401) {
+      showToast('Session expired — please log in again', 'error');
+      closeDeleteModal();
+    } else {
+      showToast('Delete failed', 'error');
     }
   } catch (e) {
     showToast('Delete failed', 'error');
@@ -429,7 +443,7 @@ function showToast(msg, type = 'success') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+  toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${esc(msg)}`;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
@@ -447,6 +461,10 @@ async function loadOrders() {
       return;
     }
 
+    // Keep the raw orders around so row actions can look up values by id
+    // instead of smuggling customer-controlled text through onclick attributes.
+    allOrders = orders;
+
     tbody.innerHTML = orders.map(o => {
       const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
       const itemNames = items ? items.map(i => `${i.name} x${i.qty}`).join(', ') : '';
@@ -458,13 +476,13 @@ async function loadOrders() {
         <tr>
           <td><strong>#${o.id}</strong></td>
           <td>
-            <strong>${o.customer_name || ''}</strong><br>
-            <small style="color:#999;">${o.customer_phone || ''}</small>
+            <strong>${esc(o.customer_name)}</strong><br>
+            <small style="color:#999;">${esc(o.customer_phone)}</small>
           </td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${itemNames}">${itemNames}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(itemNames)}">${esc(itemNames)}</td>
           <td><strong>৳${parseFloat(o.total || 0).toLocaleString()}</strong></td>
-          <td>${(o.payment_method || '').toUpperCase()}</td>
-          <td><code>${o.transaction_id || ''}</code></td>
+          <td>${esc((o.payment_method || '').toUpperCase())}</td>
+          <td><code>${esc(o.transaction_id)}</code></td>
           <td>
             <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:4px 8px;border-radius:6px;border:2px solid ${statusColor};color:${statusColor};font-weight:600;font-size:0.8rem;background:#fff;cursor:pointer;">
               <option value="pending" ${o.status==='pending'?'selected':''}>⏳ Pending</option>
@@ -475,7 +493,7 @@ async function loadOrders() {
           </td>
           <td style="font-size:0.8rem;">${date}</td>
           <td>
-            <button onclick="viewOrderWhatsApp(${o.id}, '${o.customer_phone}', '${o.customer_name}', ${o.total})" class="btn-icon" title="WhatsApp">
+            <button onclick="viewOrderWhatsApp(${o.id})" class="btn-icon" title="WhatsApp">
               <i class="fab fa-whatsapp" style="color:#25D366;"></i>
             </button>
           </td>
@@ -500,7 +518,19 @@ async function updateOrderStatus(orderId, status) {
   }
 }
 
-function viewOrderWhatsApp(id, phone, name, total) {
-  const msg = encodeURIComponent(`Hi ${name}, your Order #${id} (৳${total}) has been confirmed! Thank you for choosing PixelSub.`);
-  window.open(`https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${msg}`, '_blank');
+function viewOrderWhatsApp(id) {
+  const order = allOrders.find(o => o.id === id);
+  if (!order) return;
+
+  const phone = String(order.customer_phone || '').replace(/[^0-9]/g, '');
+  if (!phone) {
+    showToast('This order has no phone number', 'error');
+    return;
+  }
+
+  const total = parseFloat(order.total || 0).toLocaleString();
+  const msg = encodeURIComponent(
+    `Hi ${order.customer_name || ''}, your Order #${id} (৳${total}) has been confirmed! Thank you for choosing PixelSub.`
+  );
+  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
 }

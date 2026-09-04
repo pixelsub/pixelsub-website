@@ -1,5 +1,8 @@
+require('dotenv').config();
+
 const express = require('express');
 const session = require('express-session');
+const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const path = require('path');
@@ -8,16 +11,41 @@ const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Behind a proxy (Railway/Render/Heroku) so secure cookies and rate-limit IPs work.
+if (IS_PROD) app.set('trust proxy', 1);
+
+// ===== Required config check =====
+// Fail loudly at boot instead of leaking a weak default into production.
+if (IS_PROD && !process.env.SESSION_SECRET) {
+  console.error('❌ SESSION_SECRET is required when NODE_ENV=production. Refusing to start.');
+  process.exit(1);
+}
 
 // ===== Ensure upload directory =====
 const uploadsDir = path.join(__dirname, 'uploads', 'products');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// ===== Pricing rules (server-side source of truth) =====
+// The client may suggest a plan/type, but never a price.
+const PLAN_MULTIPLIERS = { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 };
+const TYPE_MULTIPLIERS = { shared: 1, personal: 1.8 };
+
+function priceFor(basePrice, plan, type) {
+  const planMult = PLAN_MULTIPLIERS[plan] ?? PLAN_MULTIPLIERS['1-month'];
+  const typeMult = TYPE_MULTIPLIERS[type] ?? TYPE_MULTIPLIERS.shared;
+  return Math.round(Number(basePrice) * planMult * typeMult);
+}
+
 // ===== Database Setup =====
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
-});
+const HAS_DB = !!process.env.DATABASE_URL;
+const pool = HAS_DB
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : null;
 
 // ===== Initialize Database Tables =====
 async function initDB() {
@@ -107,9 +135,19 @@ async function initDB() {
     // Check admin user
     const adminCount = await client.query('SELECT COUNT(*) FROM admin_users');
     if (parseInt(adminCount.rows[0].count) === 0) {
-      const hash = bcrypt.hashSync('pixelsub123', 10);
-      await client.query('INSERT INTO admin_users (username, password) VALUES ($1, $2)', ['admin', hash]);
-      console.log('✅ Created default admin user');
+      const username = process.env.ADMIN_USERNAME || 'admin';
+      const initialPassword = process.env.ADMIN_PASSWORD;
+
+      if (!initialPassword) {
+        console.error(
+          '❌ No admin user exists and ADMIN_PASSWORD is not set.\n' +
+          '   Set ADMIN_PASSWORD in your .env (or host env vars) and restart to create the first admin.'
+        );
+      } else {
+        const hash = bcrypt.hashSync(initialPassword, 10);
+        await client.query('INSERT INTO admin_users (username, password) VALUES ($1, $2)', [username, hash]);
+        console.log(`✅ Created admin user "${username}" from ADMIN_PASSWORD`);
+      }
     }
 
     // Check settings
@@ -138,15 +176,51 @@ async function initDB() {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'pixelsub-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'pixelsub-dev-only-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: IS_PROD
+  }
 }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ===== DB guard =====
+// Without a database every /api route would throw an opaque 500. Say so clearly instead.
+const DB_FREE_ROUTES = ['/pricing'];
+
+app.use('/api', (req, res, next) => {
+  if (DB_FREE_ROUTES.includes(req.path)) return next();
+  if (!HAS_DB) {
+    return res.status(503).json({
+      error: 'Database not configured. Set DATABASE_URL in .env and restart the server.'
+    });
+  }
+  next();
+});
+
+// ===== Rate limiters =====
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' }
+});
+
+const orderLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many orders submitted. Please try again later.' }
+});
 
 // ===== File Upload Config =====
 const storage = multer.diskStorage({
@@ -172,7 +246,7 @@ function requireAuth(req, res, next) {
 }
 
 // ===== AUTH API =====
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM admin_users WHERE username = $1', [username]);
@@ -301,15 +375,84 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
 });
 
 // ===== ORDERS API =====
-app.post('/api/orders', async (req, res) => {
+const ALLOWED_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket'];
+
+app.post('/api/orders', orderLimiter, async (req, res) => {
   try {
-    const { customerName, customerEmail, customerPhone, note, paymentMethod, transactionId, items, total } = req.body;
+    const { customerName, customerEmail, customerPhone, note, paymentMethod, transactionId, items } = req.body;
+
+    // --- Validate customer details ---
+    const name = String(customerName || '').trim();
+    const email = String(customerEmail || '').trim();
+    const phone = String(customerPhone || '').trim();
+    const trxId = String(transactionId || '').trim();
+
+    if (!name || !email || !phone) {
+      return res.status(400).json({ error: 'Name, email and phone are required.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+    if (!trxId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+    if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Invalid payment method.' });
+    }
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Your cart is empty.' });
+    }
+    if (items.length > 50) {
+      return res.status(400).json({ error: 'Too many items in one order.' });
+    }
+
+    // --- Price the order from the database, ignoring any client-sent price ---
+    const ids = [...new Set(items.map(i => parseInt(i.productId ?? i.id, 10)).filter(Number.isInteger))];
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'No valid products in cart.' });
+    }
+
+    const lookup = await pool.query(
+      'SELECT id, name, price FROM products WHERE id = ANY($1::int[]) AND active = true',
+      [ids]
+    );
+    const priceMap = new Map(lookup.rows.map(r => [r.id, r]));
+
+    let total = 0;
+    const pricedItems = [];
+
+    for (const item of items) {
+      const productId = parseInt(item.productId ?? item.id, 10);
+      const product = priceMap.get(productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product ${productId} is unavailable.` });
+      }
+
+      const qty = Math.min(Math.max(parseInt(item.qty, 10) || 1, 1), 99);
+      const plan = PLAN_MULTIPLIERS[item.plan] ? item.plan : '1-month';
+      const type = TYPE_MULTIPLIERS[item.type] ? item.type : 'shared';
+      const unitPrice = priceFor(product.price, plan, type);
+
+      total += unitPrice * qty;
+      pricedItems.push({
+        productId, name: product.name, qty, plan, type,
+        price: unitPrice, lineTotal: unitPrice * qty
+      });
+    }
+
     const result = await pool.query(
       'INSERT INTO orders (customer_name, customer_email, customer_phone, note, payment_method, transaction_id, items, total) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
-      [customerName, customerEmail, customerPhone, note || '', paymentMethod, transactionId, JSON.stringify(items), total]
+      [
+        name.slice(0, 255), email.slice(0, 255), phone.slice(0, 50),
+        String(note || '').slice(0, 1000), paymentMethod, trxId.slice(0, 255),
+        JSON.stringify(pricedItems), total
+      ]
     );
     res.json(result.rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error('Order creation failed:', e.message);
+    res.status(500).json({ error: 'Could not place order. Please try again.' });
+  }
 });
 
 app.get('/api/orders', requireAuth, async (req, res) => {
@@ -319,12 +462,23 @@ app.get('/api/orders', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+const ALLOWED_ORDER_STATUSES = ['pending', 'confirmed', 'delivered', 'cancelled'];
+
 app.put('/api/orders/:id/status', requireAuth, async (req, res) => {
   try {
     const { status } = req.body;
+    if (!ALLOWED_ORDER_STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status.' });
+    }
     await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== PRICING API =====
+// Single source of truth for plan/type multipliers so the UI can't drift from the server.
+app.get('/api/pricing', (req, res) => {
+  res.json({ plans: PLAN_MULTIPLIERS, types: TYPE_MULTIPLIERS });
 });
 
 // ===== Catch-all =====
@@ -334,15 +488,14 @@ app.get('/checkout', (req, res) => res.sendFile(path.join(__dirname, 'public', '
 
 // ===== Start Server =====
 async function start() {
-  if (process.env.DATABASE_URL) {
+  if (HAS_DB) {
     await initDB();
   } else {
-    console.log('⚠️  No DATABASE_URL found. Running without database (local mode).');
+    console.log('⚠️  No DATABASE_URL set — /api routes will return 503 until you add one to .env');
   }
   app.listen(PORT, () => {
     console.log(`\n  ⚡ PixelSub Server running at http://localhost:${PORT}`);
-    console.log(`  📦 Admin Panel: http://localhost:${PORT}/admin`);
-    console.log(`  🔑 Default login: admin / pixelsub123\n`);
+    console.log(`  📦 Admin Panel: http://localhost:${PORT}/admin\n`);
   });
 }
 
