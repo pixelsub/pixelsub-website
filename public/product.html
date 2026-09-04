@@ -68,7 +68,6 @@
             <div class="pd-hero-body">
               <span class="pd-category" id="pdCategory"></span>
               <h1 id="pdTitle"></h1>
-              <p class="pd-summary" id="pdSummary"></p>
               <div class="pd-price-line">
                 <span class="pd-price-label">Price</span>
                 <span class="pd-price-value" id="pdPriceRange"></span>
@@ -317,7 +316,6 @@
       document.getElementById('pdCategory').textContent = catName;
 
       document.getElementById('pdTitle').textContent = p.name;
-      document.getElementById('pdSummary').textContent = p.description || '';
       document.getElementById('pdAboutTitle').textContent = `About ${p.name}`;
 
       // Header shows the cheapest plan, since plans can differ widely.
