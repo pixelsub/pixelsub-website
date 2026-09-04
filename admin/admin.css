@@ -664,6 +664,24 @@ body {
   background: #fff;
 }
 
+/* Marks the product pinned to the front of every list. */
+.pin-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #e74c3c;
+  background: #fff0f0;
+  border: 1px solid #f5c6cb;
+  padding: 1px 7px;
+  border-radius: 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .repeat-row.plan-row { grid-template-columns: 1fr 1fr; }
   .repeat-row.plan-row .repeat-remove { grid-column: 2; justify-self: end; }

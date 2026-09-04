@@ -145,6 +145,10 @@ async function initDB() {
         data BYTEA NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      -- Added after products shipped, so ALTER rather than a column in the
+      -- CREATE above: existing databases already have the table.
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS show_first BOOLEAN DEFAULT false;
     `);
 
     // Check if products exist
@@ -331,7 +335,8 @@ function mapProduct(row) {
     price: parseFloat(row.price),
     originalPrice: row.original_price ? parseFloat(row.original_price) : null,
     image: row.image, badge: row.badge, description: row.description,
-    featured: row.featured, bestSeller: row.best_seller, active: row.active
+    featured: row.featured, bestSeller: row.best_seller, active: row.active,
+    showFirst: row.show_first === true
   };
 }
 
@@ -354,7 +359,10 @@ function mapPlan(row) {
 // ===== PRODUCTS API =====
 app.get('/api/products', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+    // Pinned products first, then oldest to newest as before.
+    const result = await pool.query(
+      'SELECT * FROM products ORDER BY show_first DESC, id ASC'
+    );
     res.json(result.rows.map(mapProduct));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -397,10 +405,10 @@ app.get('/api/products/:id', async (req, res) => {
 
 app.post('/api/products', requireAuth, async (req, res) => {
   try {
-    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller } = req.body;
+    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst } = req.body;
     const result = await pool.query(
-      'INSERT INTO products (name, category, price, original_price, image, badge, description, featured, best_seller) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
-      [name || 'Untitled', category || 'software', price || 0, originalPrice || null, image || '', badge || null, description || '', featured || false, bestSeller || false]
+      'INSERT INTO products (name, category, price, original_price, image, badge, description, featured, best_seller, show_first) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
+      [name || 'Untitled', category || 'software', price || 0, originalPrice || null, image || '', badge || null, description || '', featured || false, bestSeller || false, showFirst || false]
     );
     const row = result.rows[0];
     res.json(mapProduct(row));
@@ -409,10 +417,10 @@ app.post('/api/products', requireAuth, async (req, res) => {
 
 app.put('/api/products/:id', requireAuth, async (req, res) => {
   try {
-    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller } = req.body;
+    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst } = req.body;
     const result = await pool.query(
-      'UPDATE products SET name=$1, category=$2, price=$3, original_price=$4, image=$5, badge=$6, description=$7, featured=$8, best_seller=$9 WHERE id=$10 RETURNING *',
-      [name, category, parseFloat(price) || 0, originalPrice ? parseFloat(originalPrice) : null, image, badge || null, description, featured || false, bestSeller || false, req.params.id]
+      'UPDATE products SET name=$1, category=$2, price=$3, original_price=$4, image=$5, badge=$6, description=$7, featured=$8, best_seller=$9, show_first=$10 WHERE id=$11 RETURNING *',
+      [name, category, parseFloat(price) || 0, originalPrice ? parseFloat(originalPrice) : null, image, badge || null, description, featured || false, bestSeller || false, showFirst || false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(mapProduct(result.rows[0]));

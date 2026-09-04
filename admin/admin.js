@@ -167,7 +167,7 @@ function renderProductsTable() {
     return `
       <tr>
         <td><img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.src='https://via.placeholder.com/44'"></td>
-        <td><strong>${esc(p.name)}</strong></td>
+        <td><strong>${esc(p.name)}</strong>${p.showFirst ? ' <span class="pin-tag"><i class="fas fa-thumbtack"></i> first</span>' : ''}</td>
         <td>${esc(p.category)}</td>
         <td><strong style="color:#e74c3c;">৳${p.price.toLocaleString()}</strong>${p.originalPrice ? `<br><s style="color:#999;font-size:0.75rem;">৳${p.originalPrice.toLocaleString()}</s>` : ''}</td>
         <td>${badgeHTML}</td>
@@ -319,7 +319,8 @@ function initProductForm() {
       badge: document.getElementById('pBadge').value || null,
       description: document.getElementById('pDescription').value,
       featured: document.getElementById('pFeatured').checked,
-      bestSeller: document.getElementById('pBestSeller').checked
+      bestSeller: document.getElementById('pBestSeller').checked,
+      showFirst: document.getElementById('pShowFirst').checked
     };
 
     const plans = collectPlans();
@@ -409,6 +410,7 @@ async function editProduct(id) {
   document.getElementById('pDescription').value = product.description || '';
   document.getElementById('pFeatured').checked = product.featured;
   document.getElementById('pBestSeller').checked = product.bestSeller;
+  document.getElementById('pShowFirst').checked = product.showFirst === true;
 
   document.getElementById('productFormTitle').textContent = 'Edit Product';
   document.getElementById('productFormBtn').innerHTML = '<i class="fas fa-save"></i> Update Product';
