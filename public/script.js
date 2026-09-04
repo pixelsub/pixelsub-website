@@ -1,5 +1,5 @@
 /* ============================================
-   PixelSub �?" Interactive Functionality
+   PixelSub — Interactive Functionality
    Cart, Carousel, Search, Modals & More
    ============================================ */
 
@@ -12,7 +12,7 @@ const fallbackProducts = [
 
 let products = [];
 
-// Pricing multipliers �?" overwritten by /api/pricing so the server stays authoritative.
+// Pricing multipliers — overwritten by /api/pricing so the server stays authoritative.
 let pricing = {
   plans: { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 },
   types: { shared: 1, personal: 1.8 }
@@ -145,7 +145,7 @@ function loadCart() {
     localStorage.setItem('pixelsub_cart', JSON.stringify(usable));
     // Toast containers may not exist yet, so defer the notice.
     document.addEventListener('DOMContentLoaded', () => {
-      showToast('Your cart was cleared �?" pricing has changed', 'error');
+      showToast('Your cart was cleared — pricing has changed', 'error');
     });
   }
   return usable;
@@ -279,7 +279,7 @@ function renderCategories() {
 function createOfferCard(product) {
   const badgeHTML = product.badge ? `
     <div class="product-badges">
-      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '�Y"� Hot' : '�o� New'}</span>
+      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>
     </div>
   ` : '';
   const priceHTML = product.originalPrice ? `
@@ -296,9 +296,9 @@ function createOfferCard(product) {
       <div class="product-info">
         <h4><a href="${productUrl}">${product.name}</a></h4>
         <div class="product-price">${priceHTML}</div>
-        <button class="buy-now-btn" onclick="event.stopPropagation(); window.location.href='${productUrl}'">
+        <a class="buy-now-btn" href="${productUrl}">
           <i class="fas fa-eye"></i> View Details
-        </button>
+        </a>
       </div>
     </div>
   `;
@@ -336,7 +336,7 @@ function renderAllProducts(filter = 'all') {
 function createProductCard(product) {
   const badgeHTML = product.badge ? `
     <div class="product-badges">
-      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '�Y"� Hot' : '�o� New'}</span>
+      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>
     </div>
   ` : '';
 

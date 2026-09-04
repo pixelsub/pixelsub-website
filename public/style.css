@@ -814,15 +814,21 @@ input, select, textarea {
 .product-slider {
   display: flex;
   gap: 20px;
+  /* Cards size to their own content instead of all stretching to match the
+     tallest one, which left empty space below the shorter cards. */
+  align-items: flex-start;
   transition: transform 0.5s ease;
   cursor: grab;
 }
 
 .product-slider:active { cursor: grabbing; }
 
+/* Fixed width, not just a minimum: the square image scales to whatever width
+   the card ends up with, so an unbounded card grows tall as well as wide.
+   240 + the 20px gap is the step size initProductSlider scrolls by. */
 .product-slider .product-card {
-  min-width: 240px;
-  flex-shrink: 0;
+  width: 240px;
+  flex: 0 0 240px;
 }
 
 .slider-nav {
@@ -1901,9 +1907,14 @@ input, select, textarea {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  /* Rendered as an <a>, so the link defaults need overriding. */
+  text-decoration: none;
+  box-sizing: border-box;
 }
+
 .buy-now-btn:hover {
   background: #c0392b;
+  color: #fff;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(231,76,60,0.3);
 }
