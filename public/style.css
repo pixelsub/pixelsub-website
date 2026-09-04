@@ -282,6 +282,20 @@ input, select, textarea {
   justify-content: center;
   font-size: 1rem;
   color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Applied when an uploaded logo replaces the default icon glyph. */
+.logo-icon-image {
+  background: transparent;
+  border-radius: 6px;
+}
+
+.logo-icon-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .logo span {
@@ -1682,6 +1696,24 @@ input, select, textarea {
   color: var(--text-primary);
 }
 .pd-plan-text small { font-size: 0.75rem; color: var(--text-muted); }
+
+.pd-plan-pkg {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 1px 7px;
+  border-radius: 20px;
+  margin: 2px 0;
+}
+
+.pd-plan.selected .pd-plan-pkg {
+  background: #fff;
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
 
 .pd-plan-pricing { text-align: right; flex-shrink: 0; }
 .pd-plan-pricing strong {

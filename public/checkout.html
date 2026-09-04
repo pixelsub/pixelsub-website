@@ -310,6 +310,18 @@
           if (settings.nagadNumber) paymentNumbers.nagad = settings.nagadNumber;
           if (settings.rocketNumber) paymentNumbers.rocket = settings.rocketNumber;
           if (settings.whatsapp) supportWhatsapp = settings.whatsapp;
+
+          // Header logo and name come from settings, same as the other pages.
+          const name = settings.siteName || 'PixelSub';
+          document.querySelectorAll('.logo').forEach(logo => {
+            const icon = logo.querySelector('.logo-icon');
+            const text = logo.querySelector('span');
+            if (settings.logoUrl && icon) {
+              icon.innerHTML = `<img src="${settings.logoUrl}" alt="${name}">`;
+              icon.classList.add('logo-icon-image');
+            }
+            if (text) text.textContent = name;
+          });
         }
       } catch(e) {}
 

@@ -45,6 +45,68 @@ async function loadProducts() {
   return products;
 }
 
+// ============ Site Branding ============
+// Logo and site name live in settings so they can be changed from the admin
+// panel without editing markup. Every .logo element on the page is updated.
+let siteSettings = {};
+
+async function applyBranding() {
+  try {
+    const res = await fetch('/api/settings');
+    if (!res.ok) return;
+    siteSettings = await res.json();
+  } catch (e) {
+    return;
+  }
+
+  const name = siteSettings.siteName || 'PixelSub';
+  const logoUrl = siteSettings.logoUrl || '';
+
+  document.querySelectorAll('.logo').forEach(logo => {
+    const icon = logo.querySelector('.logo-icon');
+    const text = logo.querySelector('span');
+
+    if (logoUrl && icon) {
+      // Replace the icon glyph with the uploaded image, keeping the layout.
+      icon.innerHTML = `<img src="${logoUrl}" alt="${name}">`;
+      icon.classList.add('logo-icon-image');
+    }
+    if (text) text.textContent = name;
+  });
+
+  // Page title and description follow the site name too.
+  if (document.title.includes('PixelSub') && name !== 'PixelSub') {
+    document.title = document.title.replace('PixelSub', name);
+  }
+
+  applySocialLinks();
+}
+
+// Footer social icons are hardcoded to "#" in the markup; point them at the
+// configured URLs and hide the ones that have none.
+function applySocialLinks() {
+  const map = {
+    facebook: siteSettings.facebook,
+    instagram: siteSettings.instagram,
+    youtube: siteSettings.youtube,
+    whatsapp: siteSettings.whatsapp
+      ? `https://wa.me/${String(siteSettings.whatsapp).replace(/[^0-9]/g, '')}`
+      : ''
+  };
+
+  document.querySelectorAll('.footer-social a').forEach(link => {
+    const label = (link.getAttribute('aria-label') || '').toLowerCase();
+    const url = map[label];
+    if (url) {
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+    } else if (label in map) {
+      link.hidden = true;
+    }
+  });
+}
+
 // ============ Category Data ============
 const categories = [
   { id: "all", name: "All Products", icon: "fas fa-th-large", color: "#6c5ce7" },
@@ -91,6 +153,10 @@ function loadCart() {
 
 // ============ DOM Ready ============
 document.addEventListener('DOMContentLoaded', async () => {
+  // Branding runs independently of products so a slow product fetch does not
+  // leave the header showing the placeholder logo.
+  applyBranding();
+
   await loadProducts();
 
   initHeroCarousel();

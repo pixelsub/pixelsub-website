@@ -189,7 +189,8 @@ function addPlanRow(plan = {}) {
   const row = document.createElement('div');
   row.className = 'repeat-row plan-row';
   row.innerHTML = `
-    <input type="text" class="plan-label" placeholder="1 Month" value="${esc(plan.label)}">
+    <input type="text" class="plan-validity" placeholder="1 Month *" value="${esc(plan.validity)}">
+    <input type="text" class="plan-package" placeholder="Shared" value="${esc(plan.packageType)}">
     <input type="text" class="plan-sublabel" placeholder="30 days access" value="${esc(plan.sublabel)}">
     <input type="number" class="plan-price" placeholder="Price" min="0" step="1" value="${plan.price ?? ''}">
     <input type="number" class="plan-original" placeholder="Was" min="0" step="1" value="${plan.originalPrice ?? ''}">
@@ -278,11 +279,12 @@ function clearRepeatRows() {
 
 function collectPlans() {
   return [...document.querySelectorAll('#planRows .plan-row')].map(row => ({
-    label: row.querySelector('.plan-label').value.trim(),
+    validity: row.querySelector('.plan-validity').value.trim(),
+    packageType: row.querySelector('.plan-package').value.trim(),
     sublabel: row.querySelector('.plan-sublabel').value.trim(),
     price: row.querySelector('.plan-price').value,
     originalPrice: row.querySelector('.plan-original').value || null
-  })).filter(p => p.label);
+  })).filter(p => p.validity);
 }
 
 function collectFaqs() {
@@ -321,7 +323,7 @@ function initProductForm() {
     const plans = collectPlans();
     const invalidPlan = plans.find(p => !(Number(p.price) >= 0));
     if (invalidPlan) {
-      showToast(`Plan "${invalidPlan.label}" needs a price`, 'error');
+      showToast(`Plan "${invalidPlan.validity}" needs a price`, 'error');
       return;
     }
 
@@ -481,14 +483,36 @@ async function previewLogo(input) {
 
     if (data.url) {
       document.getElementById('sLogoUrl').value = data.url;
-      const preview = document.getElementById('sLogoPreview');
-      preview.src = data.url;
-      preview.style.display = 'block';
-      showToast('Logo uploaded!', 'success');
+      showLogoPreview(data.url);
+      showToast('Logo uploaded — save settings to apply it', 'success');
+    } else {
+      showToast(data.error || 'Upload failed', 'error');
     }
   } catch (e) {
     showToast('Upload failed', 'error');
   }
+}
+
+function showLogoPreview(url) {
+  const preview = document.getElementById('sLogoPreview');
+  const clearBtn = document.getElementById('sLogoClear');
+  if (url) {
+    preview.src = url;
+    preview.style.display = 'block';
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  } else {
+    preview.removeAttribute('src');
+    preview.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+// Clears the logo so the storefront falls back to the default icon.
+function clearLogo() {
+  document.getElementById('sLogoUrl').value = '';
+  document.getElementById('sLogoFile').value = '';
+  showLogoPreview('');
+  showToast('Logo cleared — save settings to apply', 'success');
 }
 
 // ===== Delete Product =====
@@ -541,12 +565,8 @@ async function loadSettings() {
     document.getElementById('sNagad').value = settings.nagadNumber || '';
     document.getElementById('sRocket').value = settings.rocketNumber || '';
 
-    if (settings.logoUrl) {
-      document.getElementById('sLogoUrl').value = settings.logoUrl;
-      const preview = document.getElementById('sLogoPreview');
-      preview.src = settings.logoUrl;
-      preview.style.display = 'block';
-    }
+    document.getElementById('sLogoUrl').value = settings.logoUrl || '';
+    showLogoPreview(settings.logoUrl || '');
   } catch (e) {
     showToast('Failed to load settings', 'error');
   }
@@ -578,6 +598,10 @@ function initSettingsForm() {
 
       if (res.ok) {
         showToast('Settings saved!', 'success');
+      } else if (res.status === 401) {
+        showToast('Session expired — log in again', 'error');
+      } else {
+        showToast('Failed to save settings', 'error');
       }
     } catch (e) {
       showToast('Failed to save', 'error');

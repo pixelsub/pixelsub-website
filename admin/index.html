@@ -231,9 +231,17 @@
                     </button>
                   </div>
                   <p class="repeat-hint">
-                    Leave empty to sell at the single price above. Add rows to offer
-                    durations at their own prices (e.g. 1 Month ৳550, 6 Month ৳2200).
+                    Set a price for each validity and package combination. Leave this
+                    empty to sell at the single price above.
                   </p>
+                  <div class="repeat-legend plan-legend">
+                    <span>Validity *</span>
+                    <span>Package</span>
+                    <span>Note</span>
+                    <span>Price</span>
+                    <span>Was</span>
+                    <span></span>
+                  </div>
                   <div id="planRows"></div>
                 </div>
 
@@ -324,13 +332,23 @@
                   </div>
                 </div>
                 <div class="form-group">
-                  <label>Logo Upload</label>
+                  <label>Site Logo</label>
+                  <p class="repeat-hint" style="margin-bottom:10px;">
+                    Replaces the icon next to the site name across the storefront.
+                    A square PNG or SVG works best.
+                  </p>
                   <div class="image-upload-wrap">
                     <input type="file" id="sLogoFile" accept="image/*" onchange="previewLogo(this)">
                     <div class="image-upload-label"><i class="fas fa-cloud-upload-alt"></i> Upload Logo</div>
                   </div>
-                  <img id="sLogoPreview" class="image-preview" style="display:none; max-width:150px; margin-top:10px;">
-                  <input type="hidden" id="sLogoUrl">
+                  <div class="logo-preview-row">
+                    <img id="sLogoPreview" class="image-preview" style="display:none;">
+                    <button type="button" class="btn btn-outline btn-sm" id="sLogoClear"
+                            style="display:none;" onclick="clearLogo()">
+                      <i class="fas fa-times"></i> Remove logo
+                    </button>
+                  </div>
+                  <input type="text" id="sLogoUrl" placeholder="Or paste a logo URL" style="margin-top:10px;">
                 </div>
                 <div class="form-row">
                   <div class="form-group">

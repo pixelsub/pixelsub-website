@@ -102,12 +102,13 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
-      -- Each plan carries its own price, so a product can offer any set of
-      -- durations instead of fixed multiples of one base price.
+      -- One row per validity + package combination, each with its own price,
+      -- so a product can offer any mix instead of fixed multiples of one price.
       CREATE TABLE IF NOT EXISTS product_plans (
         id SERIAL PRIMARY KEY,
         product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-        label VARCHAR(100) NOT NULL,
+        validity VARCHAR(100) NOT NULL DEFAULT '',
+        package_type VARCHAR(100) DEFAULT '',
         sublabel VARCHAR(150) DEFAULT '',
         price DECIMAL(10,2) NOT NULL DEFAULT 0,
         original_price DECIMAL(10,2),
@@ -325,9 +326,14 @@ function mapProduct(row) {
 }
 
 function mapPlan(row) {
+  const validity = row.validity || '';
+  const pkg = row.package_type || '';
   return {
     id: row.id,
-    label: row.label,
+    validity,
+    packageType: pkg,
+    // What the storefront shows on the plan row.
+    label: [validity, pkg].filter(Boolean).join(' — ') || 'Standard',
     sublabel: row.sublabel || '',
     price: parseFloat(row.price),
     originalPrice: row.original_price ? parseFloat(row.original_price) : null,
@@ -424,11 +430,11 @@ app.put('/api/products/:id/plans', requireAuth, async (req, res) => {
     if (plans.length > 20) return res.status(400).json({ error: 'Too many plans (max 20)' });
 
     for (const p of plans) {
-      if (!String(p.label || '').trim()) {
-        return res.status(400).json({ error: 'Every plan needs a label' });
+      if (!String(p.validity || '').trim()) {
+        return res.status(400).json({ error: 'Every plan needs a validity (e.g. "1 Month")' });
       }
       if (!(Number(p.price) >= 0)) {
-        return res.status(400).json({ error: `Plan "${p.label}" needs a valid price` });
+        return res.status(400).json({ error: `Plan "${p.validity}" needs a valid price` });
       }
     }
 
@@ -441,10 +447,11 @@ app.put('/api/products/:id/plans', requireAuth, async (req, res) => {
     for (let i = 0; i < plans.length; i++) {
       const p = plans[i];
       await client.query(
-        'INSERT INTO product_plans (product_id, label, sublabel, price, original_price, sort_order) VALUES ($1,$2,$3,$4,$5,$6)',
+        'INSERT INTO product_plans (product_id, validity, package_type, sublabel, price, original_price, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7)',
         [
           productId,
-          String(p.label).trim().slice(0, 100),
+          String(p.validity).trim().slice(0, 100),
+          String(p.packageType || '').trim().slice(0, 100),
           String(p.sublabel || '').trim().slice(0, 150),
           Number(p.price),
           p.originalPrice ? Number(p.originalPrice) : null,
@@ -676,7 +683,7 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
           return res.status(400).json({ error: 'Plan does not belong to that product.' });
         }
         unitPrice = parseFloat(plan.price);
-        planLabel = plan.label;
+        planLabel = [plan.validity, plan.package_type].filter(Boolean).join(' — ') || null;
       } else if (PLAN_MULTIPLIERS[item.plan] || TYPE_MULTIPLIERS[item.type]) {
         // Legacy cart still in a browser's localStorage from before per-plan pricing.
         const plan = PLAN_MULTIPLIERS[item.plan] ? item.plan : '1-month';

@@ -52,16 +52,20 @@ it rather than falling back to a known default.
 
 ## Pricing
 
-Each product can have any number of plans, and every plan carries its own
-price. A product's plans are edited on its admin page:
+Each product can have any number of plans, and every plan is a validity +
+package combination with its own price. Plans are edited on the product's admin
+page:
 
-| label | sublabel | price | original price |
-| --- | --- | --- | --- |
-| 1 Month | 30 days access | 550 | 950 |
-| 6 Month | 180 days access | 2200 | 3800 |
+| validity | package | note | price | was |
+| --- | --- | --- | --- | --- |
+| 1 Month | Shared | 30 days access | 550 | 950 |
+| 1 Month | Personal | own account | 990 | — |
+| 6 Month | Shared | 180 days access | 2200 | 3800 |
 
-The discount percentage shown on the product page is calculated from those two
-prices. A product with no plans is sold at the single price on its own record.
+Validity is required; package and note are optional, so a product with a single
+tier can just list durations. The discount percentage on the product page is
+calculated from price and "was". A product with no plans is sold at the single
+price on its own record.
 
 At checkout the browser sends only the product id, quantity and plan id. The
 server looks up the plan and computes the total itself, so a tampered cart
@@ -71,6 +75,12 @@ rejected.
 Carts saved before per-plan pricing used a multiplier scheme; `/api/pricing`
 still returns those multipliers so an old cart left in a browser is priced the
 way it was shown, rather than silently repriced.
+
+## Branding
+
+Site name, logo and social links come from Settings in the admin panel and are
+applied across the storefront at page load — no markup changes needed. Without
+an uploaded logo, the storefront falls back to the default bolt icon.
 
 ## Project layout
 
