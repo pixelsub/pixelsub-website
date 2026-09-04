@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product — PixelSub</title>
+  <title>Product �?" PixelSub</title>
   <meta name="description" content="Buy premium digital products at the best prices in Bangladesh. Instant delivery & 24/7 support.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23e74c3c'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -56,43 +56,91 @@
   <!-- Product Detail -->
   <section class="product-detail">
     <div class="container">
-      <div class="product-detail-grid">
-        <!-- Left: Image -->
-        <div class="pd-image-wrap">
-          <img id="pdImage" src="" alt="">
-        </div>
+      <div class="pd-layout">
 
-        <!-- Right: Info -->
-        <div class="pd-info">
-          <h1 id="pdTitle"></h1>
-
-          <div class="pd-price" id="pdPriceRange"></div>
-
-          <ul class="pd-features" id="pdFeatures"></ul>
-
-          <!-- Duration Options -->
-          <div class="pd-duration" id="pdDurationSection">
-            <div class="pd-duration-label">Duration : <strong id="pdDurationLabel">1 Month</strong></div>
-            <div class="pd-duration-options" id="pdDurationOptions"></div>
-            <div style="margin-top: 6px;">
-              <a href="#" style="font-size: 0.8rem; color: #999; text-transform: uppercase;" onclick="return false;">Clear</a>
+        <!-- Left column: product info + tabs -->
+        <div class="pd-main">
+          <div class="pd-hero">
+            <div class="pd-hero-image">
+              <img id="pdImage" src="" alt="">
+              <span class="pd-hero-badge" id="pdBadge" hidden></span>
+            </div>
+            <div class="pd-hero-body">
+              <span class="pd-category" id="pdCategory"></span>
+              <h1 id="pdTitle"></h1>
+              <p class="pd-summary" id="pdSummary"></p>
+              <div class="pd-price-line">
+                <span class="pd-price-label">Price</span>
+                <span class="pd-price-value" id="pdPriceRange"></span>
+              </div>
             </div>
           </div>
 
-          <!-- Selected Price -->
-          <div class="pd-selected-price" id="pdSelectedPrice"></div>
+          <!-- Tabs -->
+          <div class="pd-tabs">
+            <div class="pd-tab-strip" id="pdTabStrip" role="tablist">
+              <button class="pd-tab active" data-tab="description" role="tab" aria-selected="true">Description</button>
+              <button class="pd-tab" data-tab="reviews" role="tab" aria-selected="false" hidden>Reviews</button>
+              <button class="pd-tab" data-tab="faq" role="tab" aria-selected="false" hidden>FAQ</button>
+            </div>
 
-          <!-- Buttons -->
-          <div class="pd-buttons">
-            <button class="pd-btn-buy" onclick="buyNowFromDetail()">Buy Now</button>
-            <button class="pd-btn-cart" id="pdAddToCart" onclick="addToCartFromDetail()">Add to Cart</button>
-          </div>
+            <div class="pd-tab-panel active" id="pdPanel-description" role="tabpanel">
+              <h3 id="pdAboutTitle">About this product</h3>
+              <div class="pd-description" id="pdDescription"></div>
+            </div>
 
-          <!-- Notice -->
-          <div class="pd-notice">
-            <p>› Read <a href="#">Terms & Conditions</a>, <a href="#">Refund Policy</a> Before Placing An Order.</p>
+            <div class="pd-tab-panel" id="pdPanel-reviews" role="tabpanel">
+              <div class="pd-reviews" id="pdReviews"></div>
+            </div>
+
+            <div class="pd-tab-panel" id="pdPanel-faq" role="tabpanel">
+              <div class="pd-faqs" id="pdFaqs"></div>
+            </div>
           </div>
         </div>
+
+        <!-- Right column: sticky order box -->
+        <aside class="pd-order-box" id="pdOrderBox">
+          <div class="pd-offer-strip">
+            <i class="fas fa-fire"></i>
+            <div>
+              <strong>Limited Time Offer</strong>
+              <span>Price may increase soon �?" order now!</span>
+            </div>
+          </div>
+
+          <div class="pd-order-body">
+            <h2 class="pd-order-heading">Choose Your Plan</h2>
+            <div class="pd-plans" id="pdPlans" role="radiogroup" aria-label="Choose your plan"></div>
+
+            <dl class="pd-order-summary">
+              <div class="pd-order-row">
+                <dt>Selected</dt>
+                <dd id="pdSelectedLabel">�?"</dd>
+              </div>
+              <div class="pd-order-row pd-order-total">
+                <dt>Total</dt>
+                <dd id="pdTotal">৳0</dd>
+              </div>
+            </dl>
+
+            <button class="pd-btn-order" id="pdCompleteOrder">
+              Complete Order <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="pd-btn-addcart" id="pdAddToCart">
+              <i class="fas fa-cart-plus"></i> Add to Cart
+            </button>
+
+            <p class="pd-secure"><i class="fas fa-lock"></i> Secure Transaction</p>
+
+            <ul class="pd-assurances">
+              <li><i class="fas fa-bolt"></i> Fast delivery �?" usually within 10 minutes</li>
+              <li><i class="fas fa-shield-alt"></i> Full warranty for the whole plan period</li>
+              <li><i class="fas fa-envelope"></i> Activated on your own email</li>
+            </ul>
+          </div>
+        </aside>
+
       </div>
     </div>
   </section>
@@ -197,122 +245,273 @@
 
   <script src="script.js"></script>
   <script>
-    // ===== Product Detail Page Logic =====
-    // Waits for productsReady (from script.js) so we never read an empty products array.
+    // ===== Product Detail Page =====
+    // Plans carry their own prices, so this page never calculates one — it
+    // displays what the plan row says and sends the plan id to the server.
+    let pdProduct = null;
+    let pdPlans = [];
+    let pdSelectedPlan = null;
+
+    const taka = n => `৳${Number(n).toLocaleString()}`;
+
+    function escHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
-      await productsReady;
-
-      const params = new URLSearchParams(window.location.search);
-      const productId = parseInt(params.get('id'));
-
+      const productId = parseInt(new URLSearchParams(location.search).get('id'), 10);
       if (!Number.isInteger(productId)) {
-        window.location.href = 'index.html';
+        location.href = 'index.html';
         return;
       }
 
-      const product = products.find(p => p.id === productId);
-      if (!product) {
-        window.location.href = 'index.html';
+      // One request returns the product plus its plans, FAQs and reviews.
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        if (!res.ok) throw new Error('unavailable');
+        pdProduct = await res.json();
+      } catch (e) {
+        // Fall back to the list already loaded by script.js.
+        await productsReady;
+        pdProduct = products.find(p => p.id === productId) || null;
+      }
+
+      if (!pdProduct) {
+        location.href = 'index.html';
         return;
       }
 
-      // Set page title
-      document.title = `${product.name} — PixelSub`;
+      renderProduct();
+      renderPlans();
+      renderTabs();
+      wireOrderButtons();
 
-      // Breadcrumb
-      document.getElementById('breadcrumbName').textContent = product.name;
+      await productsReady;
+      renderRelated();
+    });
 
-      // Image
-      document.getElementById('pdImage').src = product.image;
-      document.getElementById('pdImage').alt = product.name;
+    function renderProduct() {
+      const p = pdProduct;
+      document.title = `${p.name} — PixelSub`;
+      document.getElementById('breadcrumbName').textContent = p.name;
 
-      // Title
-      document.getElementById('pdTitle').textContent = product.name;
+      const img = document.getElementById('pdImage');
+      img.src = p.image || '';
+      img.alt = p.name;
 
-      // Price range display
-      const priceRange = document.getElementById('pdPriceRange');
-      if (product.originalPrice) {
-        const discount = Math.round((1 - product.price / product.originalPrice) * 100);
-        priceRange.innerHTML = `
-          ৳${product.price.toLocaleString()}
-          <span class="pd-original">৳${product.originalPrice.toLocaleString()}</span>
-          <span class="pd-discount-pct">-${discount}%</span>
-        `;
+      if (p.badge) {
+        const badge = document.getElementById('pdBadge');
+        const labels = { sale: 'Sale!', hot: '🔥 Hot', new: '✨ New' };
+        badge.textContent = labels[p.badge] || p.badge;
+        badge.className = `pd-hero-badge badge-${p.badge}`;
+        badge.hidden = false;
+      }
+
+      const catName = (typeof categories !== 'undefined'
+        ? categories.find(c => c.id === p.category)?.name
+        : null) || p.category || '';
+      document.getElementById('pdCategory').textContent = catName;
+
+      document.getElementById('pdTitle').textContent = p.name;
+      document.getElementById('pdSummary').textContent = p.description || '';
+      document.getElementById('pdAboutTitle').textContent = `About ${p.name}`;
+
+      // Header shows the cheapest plan, since plans can differ widely.
+      const plans = p.plans || [];
+      const lowest = plans.length ? Math.min(...plans.map(pl => pl.price)) : p.price;
+      const original = plans.length
+        ? (plans.find(pl => pl.price === lowest)?.originalPrice ?? null)
+        : p.originalPrice;
+
+      const el = document.getElementById('pdPriceRange');
+      if (original && original > lowest) {
+        const off = Math.round((1 - lowest / original) * 100);
+        el.innerHTML = `${taka(lowest)}
+          <span class="pd-original">${taka(original)}</span>
+          <span class="pd-discount-pct">-${off}%</span>`;
       } else {
-        priceRange.innerHTML = `৳${product.price.toLocaleString()}`;
+        el.textContent = taka(lowest);
       }
+    }
 
-      // Features
-      const featuresList = document.getElementById('pdFeatures');
-      const extraFeatures = [
-        "Lowest price guaranteed (Bangladesh)",
-        "Activated on your email",
-        "100% authentic subscription",
-        "Instant delivery after payment"
-      ];
-      featuresList.innerHTML = extraFeatures.map(f =>
-        `<li><i class="fas fa-check"></i> ${f}</li>`
-      ).join('');
+    function renderPlans() {
+      // A product with no plans configured still needs something selectable,
+      // so synthesise one from its own price.
+      pdPlans = (pdProduct.plans && pdProduct.plans.length)
+        ? pdProduct.plans
+        : [{
+            id: null,
+            label: 'Standard',
+            sublabel: '',
+            price: pdProduct.price,
+            originalPrice: pdProduct.originalPrice
+          }];
 
-      // Duration options — plan keys match the server's PLAN_MULTIPLIERS.
-      const durations = [
-        { plan: '1-month', label: '1 Month' },
-        { plan: '3-months', label: '3 Months' },
-        { plan: '6-months', label: '6 Months' },
-        { plan: '1-year', label: '1 Year' }
-      ];
+      const container = document.getElementById('pdPlans');
+      container.innerHTML = pdPlans.map((plan, i) => {
+        const off = (plan.originalPrice && plan.originalPrice > plan.price)
+          ? Math.round((1 - plan.price / plan.originalPrice) * 100)
+          : 0;
 
-      const durationOptions = document.getElementById('pdDurationOptions');
-      const durationLabel = document.getElementById('pdDurationLabel');
-      const selectedPrice = document.getElementById('pdSelectedPrice');
-      let selectedPlan = durations[0].plan;
-      const selectedType = 'shared';
+        return `
+          <button type="button" class="pd-plan ${i === 0 ? 'selected' : ''}"
+                  role="radio" aria-checked="${i === 0}" data-index="${i}">
+            <span class="pd-plan-check"><i class="fas fa-circle-check"></i></span>
+            <span class="pd-plan-text">
+              <strong>${escHtml(plan.label)}</strong>
+              ${plan.sublabel ? `<small>${escHtml(plan.sublabel)}</small>` : ''}
+            </span>
+            <span class="pd-plan-pricing">
+              <strong>${taka(plan.price)}</strong>
+              ${plan.originalPrice ? `<s>${taka(plan.originalPrice)}</s>` : ''}
+              ${off ? `<em>-${off}%</em>` : ''}
+            </span>
+          </button>
+        `;
+      }).join('');
 
-      durationOptions.innerHTML = durations.map((d, i) =>
-        `<button class="pd-duration-btn ${i === 0 ? 'active' : ''}" data-plan="${d.plan}">${d.label}</button>`
-      ).join('');
-
-      function renderSelectedPrice() {
-        selectedPrice.innerHTML = `৳${priceFor(product.price, selectedPlan, selectedType).toLocaleString()}`;
-      }
-      renderSelectedPrice();
-
-      durationOptions.addEventListener('click', (e) => {
-        const btn = e.target.closest('.pd-duration-btn');
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pd-plan');
         if (!btn) return;
-
-        selectedPlan = btn.dataset.plan;
-        durationOptions.querySelectorAll('.pd-duration-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        durationLabel.textContent = durations.find(d => d.plan === selectedPlan).label;
-        renderSelectedPrice();
+        selectPlan(parseInt(btn.dataset.index, 10));
       });
 
-      // Add to cart from detail page — carries the chosen duration.
-      window.addToCartFromDetail = () => {
-        addToCart(product.id, selectedPlan, selectedType);
-      };
+      selectPlan(0);
+    }
 
-      // Buy Now from detail page (direct checkout)
-      window.buyNowFromDetail = () => {
-        buyNow(product.id, selectedPlan, selectedType);
-      };
+    function selectPlan(index) {
+      pdSelectedPlan = pdPlans[index];
+      if (!pdSelectedPlan) return;
 
-      // Related Products
-      const related = products
-        .filter(p => p.category === product.category && p.id !== product.id)
-        .slice(0, 4);
+      document.querySelectorAll('.pd-plan').forEach((btn, i) => {
+        const on = i === index;
+        btn.classList.toggle('selected', on);
+        btn.setAttribute('aria-checked', on);
+      });
 
-      const fallback = related.length < 4
-        ? [...related, ...products.filter(p => p.id !== product.id && !related.includes(p)).slice(0, 4 - related.length)]
-        : related;
+      document.getElementById('pdSelectedLabel').textContent = pdSelectedPlan.label;
+      document.getElementById('pdTotal').textContent = taka(pdSelectedPlan.price);
+    }
 
-      const grid = document.getElementById('relatedProductsGrid');
-      if (grid) {
-        grid.innerHTML = fallback.map(p => createProductCard(p)).join('');
+    function wireOrderButtons() {
+      document.getElementById('pdCompleteOrder').addEventListener('click', () => {
+        if (!pdSelectedPlan) return;
+        buyNow(pdProduct.id, pdSelectedPlan);
+      });
+
+      document.getElementById('pdAddToCart').addEventListener('click', () => {
+        if (!pdSelectedPlan) return;
+        // Cards render from the products list, so make sure this product is in
+        // it before adding — the detail fetch may have resolved first.
+        if (!products.some(p => p.id === pdProduct.id)) products.push(pdProduct);
+        addToCart(pdProduct.id, pdSelectedPlan);
+      });
+    }
+
+    function renderTabs() {
+      const reviews = pdProduct.reviews || [];
+      const faqs = pdProduct.faqs || [];
+
+      // Description: the product description, with blank lines becoming
+      // paragraphs and single newlines becoming line breaks.
+      const desc = (pdProduct.description || '').trim();
+      document.getElementById('pdDescription').innerHTML = desc
+        ? desc.split(/\n{2,}/).map(block =>
+            `<p>${escHtml(block).replace(/\n/g, '<br>')}</p>`
+          ).join('')
+        : '<p class="pd-empty">No description available yet.</p>';
+
+      // Reviews
+      if (reviews.length) {
+        const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+        showTab('reviews', `Reviews (${reviews.length})`);
+
+        document.getElementById('pdReviews').innerHTML = `
+          <div class="pd-rating-summary">
+            <strong>${avg.toFixed(1)}</strong>
+            <span class="pd-stars">${stars(avg)}</span>
+            <small>${reviews.length} review${reviews.length === 1 ? '' : 's'}</small>
+          </div>
+          ${reviews.map(r => `
+            <article class="pd-review">
+              <header>
+                <strong>${escHtml(r.author)}</strong>
+                <span class="pd-stars">${stars(r.rating)}</span>
+              </header>
+              ${r.body ? `<p>${escHtml(r.body)}</p>` : ''}
+            </article>
+          `).join('')}
+        `;
       }
-    });
+
+      // FAQ
+      if (faqs.length) {
+        showTab('faq', 'FAQ');
+        document.getElementById('pdFaqs').innerHTML = faqs.map((f, i) => `
+          <details class="pd-faq" ${i === 0 ? 'open' : ''}>
+            <summary>${escHtml(f.question)}</summary>
+            <p>${escHtml(f.answer).replace(/\n/g, '<br>')}</p>
+          </details>
+        `).join('');
+      }
+
+      document.getElementById('pdTabStrip').addEventListener('click', (e) => {
+        const btn = e.target.closest('.pd-tab');
+        if (btn) activateTab(btn.dataset.tab);
+      });
+    }
+
+    function showTab(name, label) {
+      const btn = document.querySelector(`.pd-tab[data-tab="${name}"]`);
+      if (!btn) return;
+      btn.textContent = label;
+      btn.hidden = false;
+    }
+
+    function activateTab(name) {
+      document.querySelectorAll('.pd-tab').forEach(btn => {
+        const on = btn.dataset.tab === name;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on);
+      });
+      document.querySelectorAll('.pd-tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `pdPanel-${name}`);
+      });
+    }
+
+    function stars(rating) {
+      const full = Math.floor(rating);
+      const half = rating - full >= 0.5;
+      let out = '';
+      for (let i = 0; i < 5; i++) {
+        if (i < full) out += '<i class="fas fa-star"></i>';
+        else if (i === full && half) out += '<i class="fas fa-star-half-stroke"></i>';
+        else out += '<i class="far fa-star"></i>';
+      }
+      return out;
+    }
+
+    function renderRelated() {
+      const grid = document.getElementById('relatedProductsGrid');
+      if (!grid) return;
+
+      const sameCategory = products.filter(p =>
+        p.category === pdProduct.category && p.id !== pdProduct.id
+      );
+      const filler = products.filter(p =>
+        p.id !== pdProduct.id && !sameCategory.includes(p)
+      );
+      const shown = [...sameCategory, ...filler].slice(0, 4);
+
+      if (shown.length === 0) {
+        document.getElementById('related-products').hidden = true;
+        return;
+      }
+      grid.innerHTML = shown.map(p => createProductCard(p)).join('');
+    }
   </script>
 </body>
 </html>
+

@@ -1,5 +1,5 @@
 /* ============================================
-   PixelSub — Interactive Functionality
+   PixelSub �?" Interactive Functionality
    Cart, Carousel, Search, Modals & More
    ============================================ */
 
@@ -12,7 +12,7 @@ const fallbackProducts = [
 
 let products = [];
 
-// Pricing multipliers — overwritten by /api/pricing so the server stays authoritative.
+// Pricing multipliers �?" overwritten by /api/pricing so the server stays authoritative.
 let pricing = {
   plans: { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 },
   types: { shared: 1, personal: 1.8 }
@@ -63,7 +63,31 @@ const categories = [
 ];
 
 // ============ Cart State ============
-let cart = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
+// Carts saved before per-plan pricing used {plan, type, customPrice}. Those
+// prices came from multipliers that no longer apply, so such lines are dropped
+// rather than shown at a price the server would not honour.
+let cart = loadCart();
+
+function loadCart() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
+  } catch (e) {
+    return [];
+  }
+  if (!Array.isArray(saved)) return [];
+
+  const usable = saved.filter(item => !('type' in item) && !('customPrice' in item));
+
+  if (usable.length !== saved.length) {
+    localStorage.setItem('pixelsub_cart', JSON.stringify(usable));
+    // Toast containers may not exist yet, so defer the notice.
+    document.addEventListener('DOMContentLoaded', () => {
+      showToast('Your cart was cleared �?" pricing has changed', 'error');
+    });
+  }
+  return usable;
+}
 
 // ============ DOM Ready ============
 document.addEventListener('DOMContentLoaded', async () => {
@@ -189,7 +213,7 @@ function renderCategories() {
 function createOfferCard(product) {
   const badgeHTML = product.badge ? `
     <div class="product-badges">
-      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>
+      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '�Y"� Hot' : '�o� New'}</span>
     </div>
   ` : '';
   const priceHTML = product.originalPrice ? `
@@ -246,7 +270,7 @@ function renderAllProducts(filter = 'all') {
 function createProductCard(product) {
   const badgeHTML = product.badge ? `
     <div class="product-badges">
-      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>
+      <span class="badge badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '�Y"� Hot' : '�o� New'}</span>
     </div>
   ` : '';
 
@@ -259,21 +283,16 @@ function createProductCard(product) {
 
   return `
     <div class="product-card" data-id="${product.id}" data-category="${product.category}">
-      <div class="product-image" onclick="openProductModal(${product.id})">
+      <div class="product-image" onclick="window.location.href='${productUrl}'">
         <img src="${product.image}" alt="${product.name}" loading="lazy">
         ${badgeHTML}
-        <div class="product-actions">
-          <button class="product-action-btn add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${product.id})" title="Add to Cart">
-            <i class="fas fa-cart-plus"></i>
-          </button>
-        </div>
       </div>
       <div class="product-info">
-        <h4><a href="#" onclick="event.preventDefault(); openProductModal(${product.id})">${product.name}</a></h4>
+        <h4><a href="${productUrl}">${product.name}</a></h4>
         <div class="product-price">${priceHTML}</div>
-        <button class="buy-now-btn" onclick="event.stopPropagation(); openProductModal(${product.id})">
+        <a class="buy-now-btn" href="${productUrl}">
           <i class="fas fa-bolt"></i> Buy Now
-        </button>
+        </a>
       </div>
     </div>
   `;
@@ -400,18 +419,21 @@ function closeCart() {
   document.body.style.overflow = '';
 }
 
-// A cart line is identified by product + plan + type, so "1 Year / Personal"
-// and "1 Month / Shared" of the same product stay separate lines.
-function cartKey(id, plan = '1-month', type = 'shared') {
-  return `${id}|${plan}|${type}`;
+// A cart line is identified by product + plan, so two plans of the same
+// product stay separate lines.
+function cartKey(id, planId) {
+  return `${id}|${planId ?? 'base'}`;
 }
 
-function addToCart(productId, plan = '1-month', type = 'shared') {
+// Adds a product to the cart. `plan` is a plan object from the product page
+// ({id, label, price}); omit it for products with no plans.
+function addToCart(productId, plan = null) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
 
-  const key = cartKey(productId, plan, type);
-  const existing = cart.find(item => cartKey(item.id, item.plan, item.type) === key);
+  const planId = plan?.id ?? null;
+  const key = cartKey(productId, planId);
+  const existing = cart.find(item => cartKey(item.id, item.planId) === key);
 
   if (existing) {
     existing.qty += 1;
@@ -419,10 +441,9 @@ function addToCart(productId, plan = '1-month', type = 'shared') {
     cart.push({
       id: productId,
       qty: 1,
-      plan,
-      type,
-      customPrice: priceFor(product.price, plan, type),
-      label: `${plan} / ${type}`
+      planId,
+      label: plan?.label ?? null,
+      price: plan ? plan.price : product.price
     });
   }
 
@@ -434,12 +455,12 @@ function addToCart(productId, plan = '1-month', type = 'shared') {
 }
 
 function removeFromCart(key) {
-  cart = cart.filter(item => cartKey(item.id, item.plan, item.type) !== key);
+  cart = cart.filter(item => cartKey(item.id, item.planId) !== key);
   saveCart(); updateCartUI(); renderCartItems();
 }
 
 function updateQty(key, delta) {
-  const item = cart.find(i => cartKey(i.id, i.plan, i.type) === key);
+  const item = cart.find(i => cartKey(i.id, i.planId) === key);
   if (!item) return;
   item.qty += delta;
   if (item.qty <= 0) { removeFromCart(key); return; }
@@ -468,10 +489,10 @@ function renderCartItems() {
     const product = products.find(p => p.id === item.id);
     if (!product) return '';
 
-    const unitPrice = item.customPrice ?? priceFor(product.price, item.plan, item.type);
+    const unitPrice = item.price ?? product.price;
     subtotal += unitPrice * item.qty;
 
-    const key = cartKey(item.id, item.plan, item.type);
+    const key = cartKey(item.id, item.planId);
     const variant = item.label ? `<div class="cart-item-variant">${item.label}</div>` : '';
 
     return `
@@ -492,32 +513,6 @@ function renderCartItems() {
     `;
   }).join('');
   if (subtotalEl) subtotalEl.textContent = `৳${subtotal.toLocaleString()}`;
-}
-
-// ============ Quick View Modal ============
-function openQuickView(productId) {
-  const product = products.find(p => p.id === productId);
-  if (!product) return;
-  const modal = document.getElementById('quickViewModal');
-  if (!modal) return;
-  const categoryName = categories.find(c => c.id === product.category)?.name || product.category;
-  modal.querySelector('.modal-image img').src = product.image;
-  modal.querySelector('.modal-image img').alt = product.name;
-  modal.querySelector('.modal-details h2').textContent = product.name;
-  const priceEl = modal.querySelector('.modal-price');
-  priceEl.innerHTML = product.originalPrice
-    ? `৳${product.price.toLocaleString()} <span class="original">৳${product.originalPrice.toLocaleString()}</span>`
-    : `৳${product.price.toLocaleString()}`;
-  modal.querySelector('.modal-desc').textContent = product.description;
-  modal.querySelector('.modal-category span').textContent = categoryName;
-  modal.querySelector('.modal-add-to-cart').onclick = () => { addToCart(product.id); closeQuickView(); };
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeQuickView() {
-  const modal = document.getElementById('quickViewModal');
-  if (modal) { modal.classList.remove('active'); document.body.style.overflow = ''; }
 }
 
 // ============ Scroll Effects ============
@@ -576,147 +571,18 @@ function priceFor(basePrice, plan, type) {
   return Math.round(basePrice * planMult * typeMult);
 }
 
-function buyNow(productId, plan, type) {
+// Replaces the cart with a single item and goes straight to checkout.
+// `plan` is a plan object from the product page, or null for base pricing.
+function buyNow(productId, plan = null) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
-  const chosenPlan = plan || '1-month';
-  const chosenType = type || 'shared';
   cart = [{
     id: productId,
     qty: 1,
-    plan: chosenPlan,
-    type: chosenType,
-    customPrice: priceFor(product.price, chosenPlan, chosenType),
-    label: `${chosenPlan} / ${chosenType}`
+    planId: plan?.id ?? null,
+    label: plan?.label ?? null,
+    price: plan ? plan.price : product.price
   }];
   saveCart();
   window.location.href = 'checkout.html';
-}
-
-// ============ Product Modal ============
-let currentModalProduct = null;
-let selectedPlan = '1-month';
-let selectedType = 'shared';
-
-function openProductModal(productId) {
-  const product = products.find(p => p.id === productId);
-  if (!product) return;
-  currentModalProduct = product;
-  selectedPlan = '1-month';
-  selectedType = 'shared';
-
-  // Remove existing modal
-  const old = document.getElementById('productModal');
-  if (old) old.remove();
-
-  const discount = product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
-
-  const modal = document.createElement('div');
-  modal.id = 'productModal';
-  modal.className = 'pm-overlay';
-  modal.innerHTML = `
-    <div class="pm-container">
-      <button class="pm-close" onclick="closeProductModal()"><i class="fas fa-times"></i></button>
-      <div class="pm-grid">
-        <div class="pm-image">
-          <img src="${product.image}" alt="${product.name}">
-          ${product.badge ? `<span class="pm-badge pm-badge-${product.badge}">${product.badge === 'sale' ? 'Sale!' : product.badge === 'hot' ? '🔥 Hot' : '✨ New'}</span>` : ''}
-        </div>
-        <div class="pm-details">
-          <h2 class="pm-title">${product.name}</h2>
-          <p class="pm-desc">${product.description || ''}</p>
-          <div class="pm-price-block">
-            ${product.originalPrice ? `<span class="pm-original">৳${product.originalPrice.toLocaleString()}</span>` : ''}
-            <span class="pm-current" id="pmPrice">৳${product.price.toLocaleString()}</span>
-            ${discount ? `<span class="pm-discount">${discount}% OFF</span>` : ''}
-          </div>
-
-          <div class="pm-option-group">
-            <label class="pm-label"><i class="fas fa-clock"></i> Plan Duration</label>
-            <div class="pm-options" id="pmPlans">
-              <button class="pm-opt active" data-plan="1-month" onclick="selectPlan(this)">1 Month</button>
-              <button class="pm-opt" data-plan="3-months" onclick="selectPlan(this)">3 Months</button>
-              <button class="pm-opt" data-plan="6-months" onclick="selectPlan(this)">6 Months</button>
-              <button class="pm-opt" data-plan="1-year" onclick="selectPlan(this)">1 Year</button>
-            </div>
-          </div>
-
-          <div class="pm-option-group">
-            <label class="pm-label"><i class="fas fa-user"></i> Account Type</label>
-            <div class="pm-options" id="pmTypes">
-              <button class="pm-opt active" data-type="shared" onclick="selectType(this)">
-                <i class="fas fa-users"></i> Shared
-              </button>
-              <button class="pm-opt" data-type="personal" onclick="selectType(this)">
-                <i class="fas fa-user-shield"></i> Personal
-              </button>
-            </div>
-          </div>
-
-          <div class="pm-final-price">
-            <span>Total Price:</span>
-            <strong id="pmFinalPrice">৳${product.price.toLocaleString()}</strong>
-          </div>
-
-          <div class="pm-actions">
-            <button class="pm-btn-buy" onclick="buyNow(${product.id}, selectedPlan, selectedType)">
-              <i class="fas fa-bolt"></i> Buy Now
-            </button>
-            <button class="pm-btn-cart" onclick="addToCart(${product.id}, selectedPlan, selectedType); closeProductModal();">
-              <i class="fas fa-cart-plus"></i> Add to Cart
-            </button>
-          </div>
-
-          <div class="pm-features">
-            <div class="pm-feat"><i class="fas fa-bolt"></i> Instant Delivery</div>
-            <div class="pm-feat"><i class="fas fa-headset"></i> 24/7 Support</div>
-            <div class="pm-feat"><i class="fas fa-shield-alt"></i> 100% Genuine</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-  document.body.style.overflow = 'hidden';
-  requestAnimationFrame(() => modal.classList.add('active'));
-
-  // Close on overlay click
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeProductModal();
-  });
-
-  updateModalPrice();
-}
-
-function closeProductModal() {
-  const modal = document.getElementById('productModal');
-  if (modal) {
-    modal.classList.remove('active');
-    setTimeout(() => modal.remove(), 300);
-    document.body.style.overflow = '';
-  }
-}
-
-function selectPlan(btn) {
-  document.querySelectorAll('#pmPlans .pm-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedPlan = btn.dataset.plan;
-  updateModalPrice();
-}
-
-function selectType(btn) {
-  document.querySelectorAll('#pmTypes .pm-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedType = btn.dataset.type;
-  updateModalPrice();
-}
-
-function updateModalPrice() {
-  if (!currentModalProduct) return;
-  const price = priceFor(currentModalProduct.price, selectedPlan, selectedType);
-  const el = document.getElementById('pmFinalPrice');
-  if (el) el.textContent = `৳${price.toLocaleString()}`;
-  const priceEl = document.getElementById('pmPrice');
-  if (priceEl) priceEl.textContent = `৳${price.toLocaleString()}`;
 }

@@ -278,11 +278,6 @@
     let products = [];
     let cart = JSON.parse(localStorage.getItem('pixelsub_cart')) || [];
 
-    let pricing = {
-      plans: { '1-month': 1, '3-months': 2.5, '6-months': 4.5, '1-year': 8 },
-      types: { shared: 1, personal: 1.8 }
-    };
-
     // Payment numbers (will be loaded from settings)
     const paymentNumbers = {
       bkash: '01XXXXXXXXX',
@@ -293,16 +288,10 @@
     // Store WhatsApp number for the post-order confirmation redirect.
     let supportWhatsapp = '';
 
-    function priceFor(basePrice, plan, type) {
-      const planMult = pricing.plans[plan] ?? 1;
-      const typeMult = pricing.types[type] ?? 1;
-      return Math.round(basePrice * planMult * typeMult);
-    }
-
-    // Single place that decides what a cart line costs, used by both the
-    // summary and the order payload so they can never disagree.
+    // Each cart line already carries the price of the plan that was chosen.
+    // The server re-derives it from the plan row before saving the order.
     function unitPriceFor(item, product) {
-      return item.customPrice ?? priceFor(product.price, item.plan, item.type);
+      return item.price ?? product.price;
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -310,12 +299,6 @@
       try {
         const res = await fetch('/api/products');
         if (res.ok) products = await res.json();
-      } catch(e) {}
-
-      // Load pricing multipliers
-      try {
-        const res = await fetch('/api/pricing');
-        if (res.ok) pricing = await res.json();
       } catch(e) {}
 
       // Load settings for payment numbers
@@ -413,8 +396,7 @@
         return {
           productId: product.id,
           qty: item.qty,
-          plan: item.plan || '1-month',
-          type: item.type || 'shared'
+          planId: item.planId ?? null
         };
       }).filter(Boolean);
 
@@ -459,7 +441,10 @@
           // Redirect to WhatsApp after 2 seconds
           setTimeout(() => {
             const itemLines = orderItems
-              .map(i => `• ${i.name} (${i.plan} / ${i.type}) x${i.qty} = ৳${Number(i.lineTotal).toLocaleString()}`)
+              .map(i => {
+                const variant = i.plan ? ` (${i.plan})` : '';
+                return `• ${i.name}${variant} x${i.qty} = ৳${Number(i.lineTotal).toLocaleString()}`;
+              })
               .join('\n');
 
             const whatsappMsg = encodeURIComponent(

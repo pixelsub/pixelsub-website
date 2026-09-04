@@ -101,6 +101,42 @@ async function initDB() {
         status VARCHAR(50) DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      -- Each plan carries its own price, so a product can offer any set of
+      -- durations instead of fixed multiples of one base price.
+      CREATE TABLE IF NOT EXISTS product_plans (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        label VARCHAR(100) NOT NULL,
+        sublabel VARCHAR(150) DEFAULT '',
+        price DECIMAL(10,2) NOT NULL DEFAULT 0,
+        original_price DECIMAL(10,2),
+        sort_order INTEGER DEFAULT 0,
+        active BOOLEAN DEFAULT true
+      );
+
+      CREATE TABLE IF NOT EXISTS product_faqs (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        question TEXT NOT NULL,
+        answer TEXT DEFAULT '',
+        sort_order INTEGER DEFAULT 0
+      );
+
+      -- Admin-entered testimonials. There are no customer accounts, so these
+      -- are not customer-submitted reviews.
+      CREATE TABLE IF NOT EXISTS product_reviews (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        author VARCHAR(150) NOT NULL,
+        rating SMALLINT NOT NULL DEFAULT 5,
+        body TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_plans_product ON product_plans(product_id);
+      CREATE INDEX IF NOT EXISTS idx_faqs_product ON product_faqs(product_id);
+      CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id);
     `);
 
     // Check if products exist
@@ -277,30 +313,68 @@ app.get('/api/auth-check', (req, res) => {
   res.json({ authenticated: !!(req.session && req.session.isAdmin) });
 });
 
+// ===== Row mappers =====
+function mapProduct(row) {
+  return {
+    id: row.id, name: row.name, category: row.category,
+    price: parseFloat(row.price),
+    originalPrice: row.original_price ? parseFloat(row.original_price) : null,
+    image: row.image, badge: row.badge, description: row.description,
+    featured: row.featured, bestSeller: row.best_seller, active: row.active
+  };
+}
+
+function mapPlan(row) {
+  return {
+    id: row.id,
+    label: row.label,
+    sublabel: row.sublabel || '',
+    price: parseFloat(row.price),
+    originalPrice: row.original_price ? parseFloat(row.original_price) : null,
+    sortOrder: row.sort_order
+  };
+}
+
 // ===== PRODUCTS API =====
 app.get('/api/products', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
-    const products = result.rows.map(row => ({
-      id: row.id, name: row.name, category: row.category,
-      price: parseFloat(row.price), originalPrice: row.original_price ? parseFloat(row.original_price) : null,
-      image: row.image, badge: row.badge, description: row.description,
-      featured: row.featured, bestSeller: row.best_seller, active: row.active
-    }));
-    res.json(products);
+    res.json(result.rows.map(mapProduct));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Returns the product plus its plans, FAQs and reviews so the detail page
+// needs a single request.
 app.get('/api/products/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid product id' });
+
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    const row = result.rows[0];
+
+    const [plans, faqs, reviews] = await Promise.all([
+      pool.query(
+        'SELECT * FROM product_plans WHERE product_id = $1 AND active = true ORDER BY sort_order ASC, id ASC',
+        [id]
+      ),
+      pool.query(
+        'SELECT * FROM product_faqs WHERE product_id = $1 ORDER BY sort_order ASC, id ASC',
+        [id]
+      ),
+      pool.query(
+        'SELECT * FROM product_reviews WHERE product_id = $1 ORDER BY created_at DESC',
+        [id]
+      )
+    ]);
+
     res.json({
-      id: row.id, name: row.name, category: row.category,
-      price: parseFloat(row.price), originalPrice: row.original_price ? parseFloat(row.original_price) : null,
-      image: row.image, badge: row.badge, description: row.description,
-      featured: row.featured, bestSeller: row.best_seller, active: row.active
+      ...mapProduct(result.rows[0]),
+      plans: plans.rows.map(mapPlan),
+      faqs: faqs.rows.map(r => ({ id: r.id, question: r.question, answer: r.answer })),
+      reviews: reviews.rows.map(r => ({
+        id: r.id, author: r.author, rating: r.rating, body: r.body, createdAt: r.created_at
+      }))
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -313,7 +387,7 @@ app.post('/api/products', requireAuth, async (req, res) => {
       [name || 'Untitled', category || 'software', price || 0, originalPrice || null, image || '', badge || null, description || '', featured || false, bestSeller || false]
     );
     const row = result.rows[0];
-    res.json({ id: row.id, name: row.name, category: row.category, price: parseFloat(row.price), originalPrice: row.original_price ? parseFloat(row.original_price) : null, image: row.image, badge: row.badge, description: row.description, featured: row.featured, bestSeller: row.best_seller, active: row.active });
+    res.json(mapProduct(row));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -325,8 +399,7 @@ app.put('/api/products/:id', requireAuth, async (req, res) => {
       [name, category, parseFloat(price) || 0, originalPrice ? parseFloat(originalPrice) : null, image, badge || null, description, featured || false, bestSeller || false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    const row = result.rows[0];
-    res.json({ id: row.id, name: row.name, category: row.category, price: parseFloat(row.price), originalPrice: row.original_price ? parseFloat(row.original_price) : null, image: row.image, badge: row.badge, description: row.description, featured: row.featured, bestSeller: row.best_seller, active: row.active });
+    res.json(mapProduct(result.rows[0]));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -335,6 +408,145 @@ app.delete('/api/products/:id', requireAuth, async (req, res) => {
     await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== PLANS API =====
+// Plans replace the whole set for a product in one call: the admin form edits
+// them as a list, so diffing individual rows would add nothing.
+app.put('/api/products/:id/plans', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const productId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(productId)) return res.status(400).json({ error: 'Invalid product id' });
+
+    const plans = Array.isArray(req.body.plans) ? req.body.plans : null;
+    if (!plans) return res.status(400).json({ error: 'plans must be an array' });
+    if (plans.length > 20) return res.status(400).json({ error: 'Too many plans (max 20)' });
+
+    for (const p of plans) {
+      if (!String(p.label || '').trim()) {
+        return res.status(400).json({ error: 'Every plan needs a label' });
+      }
+      if (!(Number(p.price) >= 0)) {
+        return res.status(400).json({ error: `Plan "${p.label}" needs a valid price` });
+      }
+    }
+
+    const exists = await client.query('SELECT id FROM products WHERE id = $1', [productId]);
+    if (exists.rows.length === 0) return res.status(404).json({ error: 'Product not found' });
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM product_plans WHERE product_id = $1', [productId]);
+
+    for (let i = 0; i < plans.length; i++) {
+      const p = plans[i];
+      await client.query(
+        'INSERT INTO product_plans (product_id, label, sublabel, price, original_price, sort_order) VALUES ($1,$2,$3,$4,$5,$6)',
+        [
+          productId,
+          String(p.label).trim().slice(0, 100),
+          String(p.sublabel || '').trim().slice(0, 150),
+          Number(p.price),
+          p.originalPrice ? Number(p.originalPrice) : null,
+          i
+        ]
+      );
+    }
+    await client.query('COMMIT');
+
+    const saved = await client.query(
+      'SELECT * FROM product_plans WHERE product_id = $1 ORDER BY sort_order ASC, id ASC',
+      [productId]
+    );
+    res.json(saved.rows.map(mapPlan));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ===== FAQ API =====
+app.put('/api/products/:id/faqs', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const productId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(productId)) return res.status(400).json({ error: 'Invalid product id' });
+
+    const faqs = Array.isArray(req.body.faqs) ? req.body.faqs : null;
+    if (!faqs) return res.status(400).json({ error: 'faqs must be an array' });
+    if (faqs.length > 50) return res.status(400).json({ error: 'Too many FAQs (max 50)' });
+
+    const clean = faqs
+      .map(f => ({ question: String(f.question || '').trim(), answer: String(f.answer || '').trim() }))
+      .filter(f => f.question);
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM product_faqs WHERE product_id = $1', [productId]);
+    for (let i = 0; i < clean.length; i++) {
+      await client.query(
+        'INSERT INTO product_faqs (product_id, question, answer, sort_order) VALUES ($1,$2,$3,$4)',
+        [productId, clean[i].question, clean[i].answer, i]
+      );
+    }
+    await client.query('COMMIT');
+
+    const saved = await client.query(
+      'SELECT * FROM product_faqs WHERE product_id = $1 ORDER BY sort_order ASC, id ASC',
+      [productId]
+    );
+    res.json(saved.rows.map(r => ({ id: r.id, question: r.question, answer: r.answer })));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ===== REVIEWS API =====
+app.put('/api/products/:id/reviews', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const productId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(productId)) return res.status(400).json({ error: 'Invalid product id' });
+
+    const reviews = Array.isArray(req.body.reviews) ? req.body.reviews : null;
+    if (!reviews) return res.status(400).json({ error: 'reviews must be an array' });
+    if (reviews.length > 100) return res.status(400).json({ error: 'Too many reviews (max 100)' });
+
+    const clean = reviews
+      .map(r => ({
+        author: String(r.author || '').trim().slice(0, 150),
+        rating: Math.min(Math.max(parseInt(r.rating, 10) || 5, 1), 5),
+        body: String(r.body || '').trim()
+      }))
+      .filter(r => r.author);
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM product_reviews WHERE product_id = $1', [productId]);
+    for (const r of clean) {
+      await client.query(
+        'INSERT INTO product_reviews (product_id, author, rating, body) VALUES ($1,$2,$3,$4)',
+        [productId, r.author, r.rating, r.body]
+      );
+    }
+    await client.query('COMMIT');
+
+    const saved = await client.query(
+      'SELECT * FROM product_reviews WHERE product_id = $1 ORDER BY created_at DESC',
+      [productId]
+    );
+    res.json(saved.rows.map(r => ({
+      id: r.id, author: r.author, rating: r.rating, body: r.body, createdAt: r.created_at
+    })));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
 // ===== UPLOAD API =====
@@ -427,6 +639,18 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     );
     const priceMap = new Map(lookup.rows.map(r => [r.id, r]));
 
+    // Plans referenced by the cart. Fetched with their product_id so a planId
+    // cannot be borrowed from a different product.
+    const planIds = [...new Set(items.map(i => parseInt(i.planId, 10)).filter(Number.isInteger))];
+    const planMap = new Map();
+    if (planIds.length > 0) {
+      const planRows = await pool.query(
+        'SELECT * FROM product_plans WHERE id = ANY($1::int[]) AND active = true',
+        [planIds]
+      );
+      planRows.rows.forEach(r => planMap.set(r.id, r));
+    }
+
     let total = 0;
     const pricedItems = [];
 
@@ -438,13 +662,37 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
       }
 
       const qty = Math.min(Math.max(parseInt(item.qty, 10) || 1, 1), 99);
-      const plan = PLAN_MULTIPLIERS[item.plan] ? item.plan : '1-month';
-      const type = TYPE_MULTIPLIERS[item.type] ? item.type : 'shared';
-      const unitPrice = priceFor(product.price, plan, type);
+      const planId = parseInt(item.planId, 10);
+
+      let unitPrice;
+      let planLabel = null;
+
+      if (Number.isInteger(planId)) {
+        const plan = planMap.get(planId);
+        if (!plan) {
+          return res.status(400).json({ error: 'A selected plan is no longer available.' });
+        }
+        if (plan.product_id !== productId) {
+          return res.status(400).json({ error: 'Plan does not belong to that product.' });
+        }
+        unitPrice = parseFloat(plan.price);
+        planLabel = plan.label;
+      } else if (PLAN_MULTIPLIERS[item.plan] || TYPE_MULTIPLIERS[item.type]) {
+        // Legacy cart still in a browser's localStorage from before per-plan pricing.
+        const plan = PLAN_MULTIPLIERS[item.plan] ? item.plan : '1-month';
+        const type = TYPE_MULTIPLIERS[item.type] ? item.type : 'shared';
+        unitPrice = priceFor(product.price, plan, type);
+        planLabel = `${plan} / ${type}`;
+      } else {
+        // Product has no plans configured — use its own price.
+        unitPrice = parseFloat(product.price);
+      }
 
       total += unitPrice * qty;
       pricedItems.push({
-        productId, name: product.name, qty, plan, type,
+        productId, name: product.name, qty,
+        planId: Number.isInteger(planId) ? planId : null,
+        plan: planLabel,
         price: unitPrice, lineTotal: unitPrice * qty
       });
     }

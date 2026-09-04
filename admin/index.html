@@ -221,6 +221,49 @@
                     </label>
                   </div>
                 </div>
+
+                <!-- Plans: each row has its own price, shown on the product page -->
+                <div class="repeat-section" id="plansSection">
+                  <div class="repeat-header">
+                    <h4>Plans</h4>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="addPlanRow()">
+                      <i class="fas fa-plus"></i> Add Plan
+                    </button>
+                  </div>
+                  <p class="repeat-hint">
+                    Leave empty to sell at the single price above. Add rows to offer
+                    durations at their own prices (e.g. 1 Month ৳550, 6 Month ৳2200).
+                  </p>
+                  <div id="planRows"></div>
+                </div>
+
+                <!-- FAQ -->
+                <div class="repeat-section" id="faqsSection">
+                  <div class="repeat-header">
+                    <h4>FAQ</h4>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="addFaqRow()">
+                      <i class="fas fa-plus"></i> Add Question
+                    </button>
+                  </div>
+                  <p class="repeat-hint">Shown in the FAQ tab. The tab is hidden if empty.</p>
+                  <div id="faqRows"></div>
+                </div>
+
+                <!-- Reviews -->
+                <div class="repeat-section" id="reviewsSection">
+                  <div class="repeat-header">
+                    <h4>Reviews</h4>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="addReviewRow()">
+                      <i class="fas fa-plus"></i> Add Review
+                    </button>
+                  </div>
+                  <p class="repeat-hint">
+                    Entered by you, not submitted by customers. The average rating is
+                    calculated from these.
+                  </p>
+                  <div id="reviewRows"></div>
+                </div>
+
                 <div class="form-actions">
                   <button type="submit" class="btn btn-primary" id="productFormBtn">
                     <i class="fas fa-save"></i> Save Product

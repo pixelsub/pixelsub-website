@@ -181,6 +181,125 @@ function renderProductsTable() {
   }).join('');
 }
 
+// ===== Repeatable rows: plans, FAQs, reviews =====
+// Each section is a list of rows read straight from the DOM on save, so there
+// is no separate state to keep in sync.
+
+function addPlanRow(plan = {}) {
+  const row = document.createElement('div');
+  row.className = 'repeat-row plan-row';
+  row.innerHTML = `
+    <input type="text" class="plan-label" placeholder="1 Month" value="${esc(plan.label)}">
+    <input type="text" class="plan-sublabel" placeholder="30 days access" value="${esc(plan.sublabel)}">
+    <input type="number" class="plan-price" placeholder="Price" min="0" step="1" value="${plan.price ?? ''}">
+    <input type="number" class="plan-original" placeholder="Was" min="0" step="1" value="${plan.originalPrice ?? ''}">
+    <button type="button" class="repeat-remove" title="Remove"><i class="fas fa-trash"></i></button>
+  `;
+  row.querySelector('.repeat-remove').addEventListener('click', () => {
+    row.remove();
+    refreshEmptyStates();
+  });
+  document.getElementById('planRows').appendChild(row);
+  refreshEmptyStates();
+}
+
+function addFaqRow(faq = {}) {
+  const row = document.createElement('div');
+  row.className = 'repeat-row faq-row';
+  row.innerHTML = `
+    <div class="repeat-stack">
+      <input type="text" class="faq-question" placeholder="Question" value="${esc(faq.question)}">
+      <textarea class="faq-answer" placeholder="Answer">${esc(faq.answer)}</textarea>
+    </div>
+    <button type="button" class="repeat-remove" title="Remove"><i class="fas fa-trash"></i></button>
+  `;
+  row.querySelector('.repeat-remove').addEventListener('click', () => {
+    row.remove();
+    refreshEmptyStates();
+  });
+  document.getElementById('faqRows').appendChild(row);
+  refreshEmptyStates();
+}
+
+function addReviewRow(review = {}) {
+  const rating = review.rating ?? 5;
+  const row = document.createElement('div');
+  row.className = 'repeat-row review-row';
+  row.innerHTML = `
+    <div class="repeat-stack">
+      <div class="repeat-inline">
+        <input type="text" class="review-author" placeholder="Reviewer name" value="${esc(review.author)}">
+        <select class="review-rating">
+          ${[5, 4, 3, 2, 1].map(n =>
+            `<option value="${n}" ${n === rating ? 'selected' : ''}>${'★'.repeat(n)} ${n}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <textarea class="review-body" placeholder="Review text">${esc(review.body)}</textarea>
+    </div>
+    <button type="button" class="repeat-remove" title="Remove"><i class="fas fa-trash"></i></button>
+  `;
+  row.querySelector('.repeat-remove').addEventListener('click', () => {
+    row.remove();
+    refreshEmptyStates();
+  });
+  document.getElementById('reviewRows').appendChild(row);
+  refreshEmptyStates();
+}
+
+function refreshEmptyStates() {
+  const sections = [
+    ['planRows', 'No plans — the product sells at its single price above.'],
+    ['faqRows', 'No questions added.'],
+    ['reviewRows', 'No reviews added.']
+  ];
+  for (const [id, message] of sections) {
+    const box = document.getElementById(id);
+    if (!box) continue;
+    const existing = box.querySelector('.repeat-empty');
+    const hasRows = box.querySelector('.repeat-row');
+    if (hasRows && existing) existing.remove();
+    if (!hasRows && !existing) {
+      const p = document.createElement('p');
+      p.className = 'repeat-empty';
+      p.textContent = message;
+      box.appendChild(p);
+    }
+  }
+}
+
+function clearRepeatRows() {
+  ['planRows', 'faqRows', 'reviewRows'].forEach(id => {
+    const box = document.getElementById(id);
+    if (box) box.innerHTML = '';
+  });
+  refreshEmptyStates();
+}
+
+function collectPlans() {
+  return [...document.querySelectorAll('#planRows .plan-row')].map(row => ({
+    label: row.querySelector('.plan-label').value.trim(),
+    sublabel: row.querySelector('.plan-sublabel').value.trim(),
+    price: row.querySelector('.plan-price').value,
+    originalPrice: row.querySelector('.plan-original').value || null
+  })).filter(p => p.label);
+}
+
+function collectFaqs() {
+  return [...document.querySelectorAll('#faqRows .faq-row')].map(row => ({
+    question: row.querySelector('.faq-question').value.trim(),
+    answer: row.querySelector('.faq-answer').value.trim()
+  })).filter(f => f.question);
+}
+
+function collectReviews() {
+  return [...document.querySelectorAll('#reviewRows .review-row')].map(row => ({
+    author: row.querySelector('.review-author').value.trim(),
+    rating: parseInt(row.querySelector('.review-rating').value, 10),
+    body: row.querySelector('.review-body').value.trim()
+  })).filter(r => r.author);
+}
+
 // ===== Product Form =====
 function initProductForm() {
   document.getElementById('productForm').addEventListener('submit', async (e) => {
@@ -199,6 +318,13 @@ function initProductForm() {
       bestSeller: document.getElementById('pBestSeller').checked
     };
 
+    const plans = collectPlans();
+    const invalidPlan = plans.find(p => !(Number(p.price) >= 0));
+    if (invalidPlan) {
+      showToast(`Plan "${invalidPlan.label}" needs a price`, 'error');
+      return;
+    }
+
     try {
       let res;
       if (editId) {
@@ -215,20 +341,57 @@ function initProductForm() {
         });
       }
 
-      if (res.ok) {
-        showToast(editId ? 'Product updated!' : 'Product added!', 'success');
-        resetProductForm();
-        navigateTo('products');
-      } else {
-        showToast('Failed to save product', 'error');
+      if (!res.ok) {
+        showToast(res.status === 401 ? 'Session expired — log in again' : 'Failed to save product', 'error');
+        return;
       }
+
+      // Plans, FAQs and reviews attach to the product, so they are saved after
+      // it exists — a new product has no id until now.
+      const saved = await res.json();
+      const productId = editId || saved.id;
+      const failed = await saveRelated(productId, plans, collectFaqs(), collectReviews());
+
+      if (failed.length) {
+        showToast(`Product saved, but ${failed.join(' and ')} failed`, 'error');
+      } else {
+        showToast(editId ? 'Product updated!' : 'Product added!', 'success');
+      }
+
+      resetProductForm();
+      navigateTo('products');
     } catch (e) {
       showToast('Server error', 'error');
     }
   });
 }
 
-function editProduct(id) {
+// Saves the three related lists. Returns the names of any that failed so the
+// product save is not reported as fully successful when part of it did not land.
+async function saveRelated(productId, plans, faqs, reviews) {
+  const calls = [
+    ['plans', `/api/products/${productId}/plans`, { plans }],
+    ['FAQs', `/api/products/${productId}/faqs`, { faqs }],
+    ['reviews', `/api/products/${productId}/reviews`, { reviews }]
+  ];
+
+  const failed = [];
+  for (const [name, url, body] of calls) {
+    try {
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) failed.push(name);
+    } catch (e) {
+      failed.push(name);
+    }
+  }
+  return failed;
+}
+
+async function editProduct(id) {
   const product = allProducts.find(p => p.id === id);
   if (!product) return;
 
@@ -255,6 +418,21 @@ function editProduct(id) {
 
   navigateTo('add-product');
   document.getElementById('pageTitle').textContent = 'Edit Product';
+
+  // The list endpoint omits plans/FAQs/reviews, so fetch the full record.
+  clearRepeatRows();
+  try {
+    const res = await fetch(`/api/products/${id}`);
+    if (res.ok) {
+      const full = await res.json();
+      (full.plans || []).forEach(addPlanRow);
+      (full.faqs || []).forEach(addFaqRow);
+      (full.reviews || []).forEach(addReviewRow);
+      refreshEmptyStates();
+    }
+  } catch (e) {
+    showToast('Could not load plans and FAQs', 'error');
+  }
 }
 
 function resetProductForm() {
@@ -263,6 +441,7 @@ function resetProductForm() {
   document.getElementById('productFormTitle').textContent = 'Add New Product';
   document.getElementById('productFormBtn').innerHTML = '<i class="fas fa-save"></i> Save Product';
   document.getElementById('pImagePreview').style.display = 'none';
+  clearRepeatRows();
 }
 
 // ===== Image Upload =====

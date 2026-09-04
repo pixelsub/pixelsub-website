@@ -52,31 +52,43 @@ it rather than falling back to a known default.
 
 ## Pricing
 
-Prices are derived from each product's base price and the customer's selection:
+Each product can have any number of plans, and every plan carries its own
+price. A product's plans are edited on its admin page:
 
-| Plan | Multiplier | | Account type | Multiplier |
-| --- | --- | --- | --- | --- |
-| 1 Month | 1× | | Shared | 1× |
-| 3 Months | 2.5× | | Personal | 1.8× |
-| 6 Months | 4.5× | | | |
-| 1 Year | 8× | | | |
+| label | sublabel | price | original price |
+| --- | --- | --- | --- |
+| 1 Month | 30 days access | 550 | 950 |
+| 6 Month | 180 days access | 2200 | 3800 |
 
-`GET /api/pricing` exposes these multipliers so the storefront never keeps its own
-copy. The server recalculates every order total from the database at checkout, so a
-tampered cart in the browser cannot change what gets charged.
+The discount percentage shown on the product page is calculated from those two
+prices. A product with no plans is sold at the single price on its own record.
+
+At checkout the browser sends only the product id, quantity and plan id. The
+server looks up the plan and computes the total itself, so a tampered cart
+cannot change what gets charged. A plan id belonging to a different product is
+rejected.
+
+Carts saved before per-plan pricing used a multiplier scheme; `/api/pricing`
+still returns those multipliers so an old cart left in a browser is priced the
+way it was shown, rather than silently repriced.
 
 ## Project layout
 
 ```
 server.js          Express app, API routes, database setup
 public/            Storefront (index, product, checkout)
-admin/             Admin panel (products, orders, settings)
+admin/             Admin panel (products, plans, orders, settings)
 uploads/products/  Uploaded product images
 ```
+
+Tables: `products`, `product_plans`, `product_faqs`, `product_reviews`,
+`orders`, `settings`, `admin_users`. All are created on first run.
 
 ## Notes
 
 - Customer accounts are not implemented — the "Login" button is a placeholder.
 - Footer pages (Contact, FAQ, Privacy, Refund, Terms) are not written yet.
+- Product reviews are entered by the admin, not submitted by customers, since
+  there are no customer accounts to attribute them to.
 - Orders are confirmed manually: the customer submits a transaction ID, and the
   admin verifies it and updates the order status.
