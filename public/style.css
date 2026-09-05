@@ -2021,6 +2021,33 @@ input, select, textarea {
 
 .pd-btn-addcart:hover { background: var(--text-primary); color: #fff; }
 
+.pd-btn-chat {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: var(--border-radius);
+  background: #25d366;
+  border: 2px solid #25d366;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.pd-btn-chat:hover {
+  background: #1eb855;
+  border-color: #1eb855;
+  color: #fff;
+}
+
+.pd-btn-chat i { font-size: 1.15rem; }
+
 /* Sold-out order box: buttons inert, plans no longer selectable. */
 .pd-btn-order:disabled,
 .pd-btn-addcart:disabled {

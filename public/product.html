@@ -130,6 +130,9 @@
             <button class="pd-btn-addcart" id="pdAddToCart">
               <i class="fas fa-cart-plus"></i> Add to Cart
             </button>
+            <a class="pd-btn-chat" id="pdWhatsappChat" target="_blank" rel="noopener" hidden>
+              <i class="fab fa-whatsapp"></i> WhatsApp Live Chat
+            </a>
 
             <p class="pd-secure"><i class="fas fa-lock"></i> Secure Transaction</p>
 
@@ -289,6 +292,7 @@
       renderPlans();
       renderTabs();
       wireOrderButtons();
+      wireChatButton();
 
       await productsReady;
       renderRelated();
@@ -431,6 +435,22 @@
         if (!products.some(p => p.id === pdProduct.id)) products.push(pdProduct);
         addToCart(pdProduct.id, pdSelectedPlan);
       });
+    }
+
+    // Hidden until settings load, since it needs the WhatsApp number.
+    async function wireChatButton() {
+      const btn = document.getElementById('pdWhatsappChat');
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const settings = await res.json();
+        const digits = String(settings.whatsapp || '').replace(/[^0-9]/g, '');
+        if (!digits) return;
+
+        const msg = encodeURIComponent(`Hi, I want to know about ${pdProduct.name}.`);
+        btn.href = `https://wa.me/${digits}?text=${msg}`;
+        btn.hidden = false;
+      } catch (e) { /* leave it hidden */ }
     }
 
     function renderTabs() {
