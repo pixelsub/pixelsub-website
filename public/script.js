@@ -574,6 +574,10 @@ function addToCart(productId, plan = null) {
   saveCart();
   updateCartUI();
   showToast(`${product.name} added to cart!`, 'success');
+  // Meta Pixel - AddToCart event
+  if (typeof fbq === 'function') {
+    fbq('track', 'AddToCart', { content_name: product.name, content_ids: [product.id], content_type: 'product', value: plan ? plan.price : product.price, currency: 'BDT' });
+  }
   const badge = document.querySelector('.cart-badge');
   if (badge) { badge.style.animation = 'pulse 0.3s ease'; setTimeout(() => badge.style.animation = '', 300); }
 }

@@ -8,6 +8,25 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%231560f0'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>P</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '2943914935985346');
+  fbq('track', 'PageView');
+  fbq('track', 'InitiateCheckout');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=2943914935985346&ev=PageView&noscript=1"/></noscript>
+  <!-- End Meta Pixel Code -->
+
   <style>
     .checkout-page { padding: 100px 0 60px; min-height: 100vh; }
     .checkout-grid { display: grid; grid-template-columns: 1fr 420px; gap: 30px; }
@@ -473,6 +492,11 @@
           document.getElementById('checkoutGrid').style.display = 'none';
           document.getElementById('orderSuccess').style.display = 'block';
           document.getElementById('successOrderId').textContent = `Order #${order.id}`;
+
+          // Meta Pixel - Purchase event
+          if (typeof fbq === 'function') {
+            fbq('track', 'Purchase', { value: orderTotal, currency: 'BDT', content_type: 'product' });
+          }
 
           // Redirect to WhatsApp after 2 seconds
           setTimeout(() => {
