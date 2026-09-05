@@ -222,6 +222,10 @@
                 </ol>
 
                 <div class="trx-group">
+                  <div class="form-group">
+                    <label>Your Payment Number *</label>
+                    <input type="tel" id="coSender" required placeholder="01XXXXXXXXX">
+                  </div>
                   <div class="form-group" style="margin-bottom:0;">
                     <label>Transaction ID (TrxID) *</label>
                     <input type="text" id="coTrxId" required placeholder="e.g. ABC123XYZ">
@@ -400,10 +404,15 @@
       const phone = document.getElementById('coPhone').value.trim();
       const note = document.getElementById('coNote').value.trim();
       const trxId = document.getElementById('coTrxId').value.trim();
+      const senderNumber = document.getElementById('coSender').value.trim();
       const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value;
 
       if (!name || !email || !phone) {
         showToast('Please fill in all required fields', 'error');
+        return;
+      }
+      if (senderNumber.replace(/[^0-9]/g, '').length < 11) {
+        showToast('Please enter the 11-digit number you paid from', 'error');
         return;
       }
       if (!trxId) {
@@ -444,6 +453,7 @@
             note,
             paymentMethod,
             transactionId: trxId,
+            senderNumber,
             items
           })
         });

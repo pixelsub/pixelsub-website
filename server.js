@@ -153,6 +153,10 @@ async function initDB() {
       -- Defaults to true so existing products stay purchasable after the upgrade.
       ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT true;
 
+      -- The number the customer paid from. Needed to match a payment against
+      -- the transaction id when verifying an order.
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS sender_number VARCHAR(50) DEFAULT '';
+
       -- Homepage carousel slides, editable from the admin panel.
       CREATE TABLE IF NOT EXISTS banners (
         id SERIAL PRIMARY KEY,
@@ -696,13 +700,14 @@ const ALLOWED_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket'];
 
 app.post('/api/orders', orderLimiter, async (req, res) => {
   try {
-    const { customerName, customerEmail, customerPhone, note, paymentMethod, transactionId, items } = req.body;
+    const { customerName, customerEmail, customerPhone, note, paymentMethod, transactionId, senderNumber, items } = req.body;
 
     // --- Validate customer details ---
     const name = String(customerName || '').trim();
     const email = String(customerEmail || '').trim();
     const phone = String(customerPhone || '').trim();
     const trxId = String(transactionId || '').trim();
+    const sender = String(senderNumber || '').trim();
 
     if (!name || !email || !phone) {
       return res.status(400).json({ error: 'Name, email and phone are required.' });
@@ -712,6 +717,14 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     }
     if (!trxId) {
       return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+    // Both are needed to verify a payment: the id identifies the transaction,
+    // the number identifies who sent it.
+    if (!sender) {
+      return res.status(400).json({ error: 'The number you paid from is required.' });
+    }
+    if (sender.replace(/[^0-9]/g, '').length < 11) {
+      return res.status(400).json({ error: 'Please enter a valid 11-digit payment number.' });
     }
     if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) {
       return res.status(400).json({ error: 'Invalid payment method.' });
@@ -799,11 +812,11 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO orders (customer_name, customer_email, customer_phone, note, payment_method, transaction_id, items, total) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      'INSERT INTO orders (customer_name, customer_email, customer_phone, note, payment_method, transaction_id, sender_number, items, total) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
       [
         name.slice(0, 255), email.slice(0, 255), phone.slice(0, 50),
         String(note || '').slice(0, 1000), paymentMethod, trxId.slice(0, 255),
-        JSON.stringify(pricedItems), total
+        sender.slice(0, 50), JSON.stringify(pricedItems), total
       ]
     );
     res.json(result.rows[0]);

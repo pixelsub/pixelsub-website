@@ -880,7 +880,10 @@ async function loadOrders() {
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(itemNames)}">${esc(itemNames)}</td>
           <td><strong>৳${parseFloat(o.total || 0).toLocaleString()}</strong></td>
           <td>${esc((o.payment_method || '').toUpperCase())}</td>
-          <td><code>${esc(o.transaction_id)}</code></td>
+          <td>
+            <code>${esc(o.transaction_id)}</code>
+            ${o.sender_number ? `<br><small style="color:#999;">from ${esc(o.sender_number)}</small>` : ''}
+          </td>
           <td>
             <select onchange="updateOrderStatus(${o.id}, this.value)" style="padding:4px 8px;border-radius:6px;border:2px solid ${statusColor};color:${statusColor};font-weight:600;font-size:0.8rem;background:#fff;cursor:pointer;">
               <option value="pending" ${o.status==='pending'?'selected':''}>⏳ Pending</option>
