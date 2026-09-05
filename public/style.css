@@ -593,11 +593,11 @@ input, select, textarea {
   position: relative;
 }
 
-/* Uploaded banner images. A fixed aspect ratio keeps every slide the same
-   height regardless of the image's own dimensions, so the carousel does not
-   jump as it pages. */
+/* Uploaded banner images. The ratio stays 3:1 at every width — matching the
+   shape banners are designed at — so the slot never gets taller than the image
+   and `contain` has nothing to letterbox. */
 .hero-slide-image {
-  aspect-ratio: 1200 / 400;
+  aspect-ratio: 3 / 1;
   background: var(--bg-secondary);
 }
 
@@ -608,8 +608,10 @@ input, select, textarea {
   height: 100%;
 }
 
+/* contain, not cover: a banner carries text to the edges, and cropping the
+   sides cut words off. Any mismatch shows as background rather than lost text. */
 .hero-slide-image img {
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Text slides keep their own height via .hero-slide-content below. */
@@ -643,7 +645,8 @@ input, select, textarea {
 }
 
 @media (max-width: 768px) {
-  .hero-slide-image { aspect-ratio: 16 / 9; }
+  /* No aspect-ratio override here: forcing a taller box than the image made the
+     banner huge and cropped the sides off. */
   .hero-slide-content { min-height: 220px; }
   .hero-text-overlay h1 { font-size: 1.5rem; }
   .hero-text-overlay p { font-size: 0.9rem; }
@@ -1500,19 +1503,30 @@ input, select, textarea {
   .wa-float::before { animation: none; }
 }
 
-/* On narrow screens the label would crowd the layout, so show only the icon. */
+/* On narrow screens the label would crowd the layout, so show only the icon.
+   Kept low and tight to the edge so it overlaps as little content as possible;
+   the scroll-to-top button moves up to sit above it. */
 @media (max-width: 640px) {
   .wa-float {
-    bottom: 82px;
-    right: 16px;
-    width: 52px;
-    height: 52px;
+    bottom: 20px;
+    right: 14px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     justify-content: center;
     border-radius: 50%;
   }
   .wa-float span { display: none; }
-  .wa-float i { font-size: 1.5rem; }
+  .wa-float i { font-size: 1.4rem; }
+
+  /* Stacked above WhatsApp rather than beside it, so neither covers content.
+     44px is the minimum comfortable tap target. */
+  .scroll-top {
+    bottom: 78px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* =====================================
