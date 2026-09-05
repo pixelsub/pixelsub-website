@@ -593,6 +593,67 @@ input, select, textarea {
   position: relative;
 }
 
+/* Uploaded banner images. A fixed aspect ratio keeps every slide the same
+   height regardless of the image's own dimensions, so the carousel does not
+   jump as it pages. */
+.hero-slide-image {
+  aspect-ratio: 1200 / 400;
+  background: var(--bg-secondary);
+}
+
+.hero-slide-image img,
+.hero-slide-image a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide-image img {
+  object-fit: cover;
+}
+
+/* Text slides keep their own height via .hero-slide-content below. */
+.hero-slide-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 340px;
+  padding: 40px 20px;
+}
+
+.hero-text-overlay {
+  text-align: center;
+  max-width: 650px;
+}
+
+.hero-text-overlay h1 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+  line-height: 1.15;
+  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
+}
+
+.hero-text-overlay p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .hero-slide-image { aspect-ratio: 16 / 9; }
+  .hero-slide-content { min-height: 220px; }
+  .hero-text-overlay h1 { font-size: 1.5rem; }
+  .hero-text-overlay p { font-size: 0.9rem; }
+}
+
+@media (max-width: 480px) {
+  .hero-slide-content { min-height: 180px; }
+  .hero-text-overlay h1 { font-size: 1.2rem; }
+}
+
 .hero-dots {
   position: absolute;
   bottom: 16px;
@@ -1336,6 +1397,72 @@ input, select, textarea {
 
 .scroll-top.visible { opacity: 1; visibility: visible; transform: translateY(0); }
 .scroll-top:hover { transform: translateY(-3px); }
+
+/* ---------- Floating WhatsApp ---------- */
+/* Sits above the scroll-to-top button, which occupies bottom: 30px. */
+.wa-float {
+  position: fixed;
+  bottom: 88px;
+  right: 30px;
+  z-index: 901;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px 11px 13px;
+  border-radius: 30px;
+  background: #25d366;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.35);
+  transition: all var(--transition-normal);
+}
+
+.wa-float i { font-size: 1.35rem; }
+
+.wa-float:hover {
+  background: #1eb855;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(37, 211, 102, 0.45);
+}
+
+/* Draws the eye without being a constant distraction. */
+.wa-float::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid #25d366;
+  animation: waPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes waPulse {
+  0% { opacity: 0.7; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.18); }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-float::before { animation: none; }
+}
+
+/* On narrow screens the label would crowd the layout, so show only the icon. */
+@media (max-width: 640px) {
+  .wa-float {
+    bottom: 82px;
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .wa-float span { display: none; }
+  .wa-float i { font-size: 1.5rem; }
+}
 
 /* =====================================
    PRODUCT DETAIL PAGE STYLES

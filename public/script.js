@@ -45,6 +45,13 @@ async function loadProducts() {
   return products;
 }
 
+// Escapes a value for use inside an HTML attribute.
+function escapeAttr(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
 // ============ Site Branding ============
 // Logo and site name live in settings so they can be changed from the admin
 // panel without editing markup. Every .logo element on the page is updated.
@@ -80,6 +87,28 @@ async function applyBranding() {
   }
 
   applySocialLinks();
+  mountWhatsappButton();
+}
+
+// Floating WhatsApp contact button. Injected rather than written into each
+// page's markup so it appears everywhere and only when a number is configured.
+function mountWhatsappButton() {
+  const digits = String(siteSettings.whatsapp || '').replace(/[^0-9]/g, '');
+  if (!digits) return;
+  if (document.querySelector('.wa-float')) return;
+
+  const name = siteSettings.siteName || 'PixelSub';
+  const message = encodeURIComponent(`Hi ${name}, I have a question about your products.`);
+
+  const link = document.createElement('a');
+  link.className = 'wa-float';
+  link.href = `https://wa.me/${digits}?text=${message}`;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.setAttribute('aria-label', 'Chat with us on WhatsApp');
+  link.innerHTML = '<i class="fab fa-whatsapp"></i><span>WhatsApp</span>';
+
+  document.body.appendChild(link);
 }
 
 // Footer social icons are hardcoded to "#" in the markup; point them at the
@@ -159,9 +188,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // leave the header showing the placeholder logo.
   applyBranding();
 
+  // Banners load independently of products, so start the carousel without
+  // waiting for the product list.
+  initHeroCarousel();
+
   await loadProducts();
 
-  initHeroCarousel();
   renderCategories();
   renderSpecialOffers();
   renderBestSellers();
@@ -175,64 +207,70 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============ Hero Carousel ============
-function initHeroCarousel() {
+// Slides come from uploaded banner images. The gradient slides below are only
+// a fallback for when none have been added yet.
+const FALLBACK_SLIDES = [
+  {
+    gradient: "linear-gradient(135deg, #1560f0 0%, #0d47c4 60%, #0a3694 100%)",
+    title: "Premium Digital Products",
+    subtitle: "Get access to top-tier tools at unbeatable prices"
+  },
+  {
+    gradient: "linear-gradient(135deg, #1c2434 0%, #24304a 60%, #141a26 100%)",
+    title: "Trusted Subscriptions",
+    subtitle: "Genuine accounts with full warranty and instant delivery"
+  },
+  {
+    gradient: "linear-gradient(135deg, #12a37f 0%, #0e8265 60%, #0a6650 100%)",
+    title: "Best Prices in Bangladesh",
+    subtitle: "Pay with bKash, Nagad or Rocket"
+  }
+];
+
+async function initHeroCarousel() {
   const track = document.getElementById('heroTrack');
   const dotsContainer = document.getElementById('heroDots');
   if (!track || !dotsContainer) return;
 
-  const slides = [
-    {
-      gradient: "linear-gradient(135deg, #1560f0 0%, #0d47c4 60%, #0a3694 100%)",
-      title: "Premium Digital Products",
-      subtitle: "Get access to top-tier tools at unbeatable prices",
-      accent: "#ffffff"
-    },
-    {
-      gradient: "linear-gradient(135deg, #1c2434 0%, #24304a 60%, #141a26 100%)",
-      title: "ChatGPT Plus @ ৳650 Only",
-      subtitle: "GPT-4o, DALL·E 3, Code Interpreter & more",
-      accent: "#ffffff"
-    },
-    {
-      gradient: "linear-gradient(135deg, #12a37f 0%, #0e8265 60%, #0a6650 100%)",
-      title: "Educational Combo Deals",
-      subtitle: "Udemy + Coursera + Skillshare at best prices",
-      accent: "#ffffff"
-    }
-  ];
+  let banners = [];
+  try {
+    const res = await fetch('/api/banners');
+    if (res.ok) banners = await res.json();
+  } catch (e) { /* fall through to the gradient slides */ }
 
-  // Render slides
-  track.innerHTML = slides.map((slide) => `
-    <div class="hero-slide" style="background: ${slide.gradient};">
-      <div class="hero-slide-content">
-        <div class="hero-text-overlay">
-          <h1 style="color: ${slide.accent}">${slide.title}</h1>
-          <p>${slide.subtitle}</p>
-          <a href="#all-products" class="btn btn-primary">Shop Now <i class="fas fa-arrow-right"></i></a>
+  const usingImages = banners.length > 0;
+  const slideCount = usingImages ? banners.length : FALLBACK_SLIDES.length;
+
+  if (usingImages) {
+    track.innerHTML = banners.map(b => {
+      const img = `<img src="${b.image}" alt="${escapeAttr(b.altText)}" loading="lazy">`;
+      return `<div class="hero-slide hero-slide-image">${
+        b.link ? `<a href="${escapeAttr(b.link)}">${img}</a>` : img
+      }</div>`;
+    }).join('');
+  } else {
+    track.innerHTML = FALLBACK_SLIDES.map(slide => `
+      <div class="hero-slide" style="background: ${slide.gradient};">
+        <div class="hero-slide-content">
+          <div class="hero-text-overlay">
+            <h1>${slide.title}</h1>
+            <p>${slide.subtitle}</p>
+            <a href="#all-products" class="btn btn-primary">Shop Now <i class="fas fa-arrow-right"></i></a>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
-  // Add slide styles
-  const style = document.createElement('style');
-  style.textContent = `
-    .hero-slide-content { display: flex; align-items: center; justify-content: center; min-height: 340px; padding: 40px 20px; }
-    .hero-text-overlay { text-align: center; max-width: 650px; }
-    .hero-text-overlay h1 { font-family: 'Poppins', sans-serif; font-size: 2.6rem; font-weight: 800; margin-bottom: 12px; line-height: 1.15; text-shadow: 0 2px 15px rgba(0,0,0,0.2); }
-    .hero-text-overlay p { font-size: 1.1rem; color: rgba(255,255,255,0.8); margin-bottom: 24px; }
-    @media (max-width: 768px) { .hero-slide-content { min-height: 220px; } .hero-text-overlay h1 { font-size: 1.5rem; } .hero-text-overlay p { font-size: 0.9rem; } }
-    @media (max-width: 480px) { .hero-slide-content { min-height: 180px; } .hero-text-overlay h1 { font-size: 1.2rem; } }
-  `;
-  document.head.appendChild(style);
-
-  // Dots
-  dotsContainer.innerHTML = slides.map((_, i) => `
-    <button class="hero-dot ${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="Slide ${i + 1}"></button>
-  `).join('');
+  // A single slide has nothing to page through, so hide the dots.
+  dotsContainer.innerHTML = slideCount > 1
+    ? Array.from({ length: slideCount }, (_, i) =>
+        `<button class="hero-dot ${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="Slide ${i + 1}"></button>`
+      ).join('')
+    : '';
 
   let currentSlide = 0;
-  const totalSlides = slides.length;
+  const totalSlides = slideCount;
 
   function goToSlide(index) {
     currentSlide = index;
@@ -247,8 +285,10 @@ function initHeroCarousel() {
     if (dot) goToSlide(parseInt(dot.dataset.index));
   });
 
-  let autoplay = setInterval(() => goToSlide((currentSlide + 1) % totalSlides), 4500);
   const carousel = document.querySelector('.hero-carousel');
+  if (totalSlides < 2) return;
+
+  let autoplay = setInterval(() => goToSlide((currentSlide + 1) % totalSlides), 4500);
   carousel.addEventListener('mouseenter', () => clearInterval(autoplay));
   carousel.addEventListener('mouseleave', () => {
     autoplay = setInterval(() => goToSlide((currentSlide + 1) % totalSlides), 4500);

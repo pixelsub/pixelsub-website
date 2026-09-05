@@ -51,6 +51,7 @@
         <a href="#" class="nav-item" data-page="products"><i class="fas fa-box"></i> Products</a>
         <a href="#" class="nav-item" data-page="orders"><i class="fas fa-shopping-bag"></i> Orders</a>
         <a href="#" class="nav-item" data-page="add-product"><i class="fas fa-plus-circle"></i> Add Product</a>
+        <a href="#" class="nav-item" data-page="banners"><i class="fas fa-images"></i> Banners</a>
         <a href="#" class="nav-item" data-page="settings"><i class="fas fa-cog"></i> Settings</a>
         <div class="nav-divider"></div>
         <a href="#" class="nav-item" onclick="visitSite()"><i class="fas fa-external-link-alt"></i> View Site</a>
@@ -321,6 +322,32 @@
                   </thead>
                   <tbody id="ordersTableBody"></tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BANNERS PAGE -->
+        <div class="page" id="page-banners">
+          <div class="card">
+            <div class="card-header">
+              <h3>Homepage Banners</h3>
+              <button class="btn btn-primary btn-sm" onclick="addBannerRow()">
+                <i class="fas fa-plus"></i> Add Banner
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="repeat-hint" style="margin-bottom:14px;">
+                Slides shown at the top of the homepage, in this order. A wide image
+                works best — around 1200 × 400. The link is where a customer goes on
+                clicking the banner; leave it blank for a banner that is not clickable.
+                With no banners the homepage falls back to its default slides.
+              </p>
+              <div id="bannerRows"></div>
+              <div class="form-actions" style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="saveBanners()">
+                  <i class="fas fa-save"></i> Save Banners
+                </button>
               </div>
             </div>
           </div>

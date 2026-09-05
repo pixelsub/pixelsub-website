@@ -322,6 +322,20 @@
             }
             if (text) text.textContent = name;
           });
+
+          // This page does not load script.js, so add the WhatsApp button here.
+          const digits = String(settings.whatsapp || '').replace(/[^0-9]/g, '');
+          if (digits) {
+            const msg = encodeURIComponent(`Hi ${name}, I have a question about my order.`);
+            const wa = document.createElement('a');
+            wa.className = 'wa-float';
+            wa.href = `https://wa.me/${digits}?text=${msg}`;
+            wa.target = '_blank';
+            wa.rel = 'noopener';
+            wa.setAttribute('aria-label', 'Chat with us on WhatsApp');
+            wa.innerHTML = '<i class="fab fa-whatsapp"></i><span>WhatsApp</span>';
+            document.body.appendChild(wa);
+          }
         }
       } catch(e) {}
 

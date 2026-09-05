@@ -82,6 +82,20 @@ Site name, logo and social links come from Settings in the admin panel and are
 applied across the storefront at page load — no markup changes needed. Without
 an uploaded logo, the storefront falls back to the default bolt icon.
 
+Setting a WhatsApp number also adds a floating contact button to every page,
+pre-filled with a message. Clearing the number removes it.
+
+## Banners
+
+The homepage carousel is managed under Banners in the admin panel: upload an
+image, optionally give it a link and alt text, and reorder with the arrows.
+Around 1200 × 400 suits the slot. Slides are cropped to a fixed aspect ratio so
+differing image sizes do not make the carousel jump between slides.
+
+With no banners configured the homepage shows three built-in gradient slides, so
+it never renders an empty carousel. A single banner hides the dots and disables
+autoplay.
+
 ## Uploaded images
 
 Images are stored in the `uploads` table as binary data and served from
@@ -106,7 +120,8 @@ uploads/products/  Uploaded product images
 ```
 
 Tables: `products`, `product_plans`, `product_faqs`, `product_reviews`,
-`orders`, `settings`, `admin_users`, `uploads`. All are created on first run.
+`orders`, `settings`, `admin_users`, `uploads`, `banners`. All are created on
+first run.
 
 ## Notes
 

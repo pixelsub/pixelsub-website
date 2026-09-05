@@ -149,6 +149,17 @@ async function initDB() {
       -- Added after products shipped, so ALTER rather than a column in the
       -- CREATE above: existing databases already have the table.
       ALTER TABLE products ADD COLUMN IF NOT EXISTS show_first BOOLEAN DEFAULT false;
+
+      -- Homepage carousel slides, editable from the admin panel.
+      CREATE TABLE IF NOT EXISTS banners (
+        id SERIAL PRIMARY KEY,
+        image TEXT NOT NULL DEFAULT '',
+        link TEXT DEFAULT '',
+        alt_text VARCHAR(255) DEFAULT '',
+        sort_order INTEGER DEFAULT 0,
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // Check if products exist
@@ -809,6 +820,62 @@ app.put('/api/orders/:id/status', requireAuth, async (req, res) => {
     await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== BANNERS API =====
+function mapBanner(row) {
+  return {
+    id: row.id,
+    image: row.image,
+    link: row.link || '',
+    altText: row.alt_text || '',
+    sortOrder: row.sort_order
+  };
+}
+
+app.get('/api/banners', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM banners WHERE active = true ORDER BY sort_order ASC, id ASC'
+    );
+    res.json(result.rows.map(mapBanner));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Replaces the whole set, like plans — the admin edits them as one list.
+app.put('/api/banners', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const banners = Array.isArray(req.body.banners) ? req.body.banners : null;
+    if (!banners) return res.status(400).json({ error: 'banners must be an array' });
+    if (banners.length > 12) return res.status(400).json({ error: 'Too many banners (max 12)' });
+
+    const clean = banners
+      .map(b => ({
+        image: String(b.image || '').trim(),
+        link: String(b.link || '').trim().slice(0, 500),
+        altText: String(b.altText || '').trim().slice(0, 255)
+      }))
+      .filter(b => b.image);
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM banners');
+    for (let i = 0; i < clean.length; i++) {
+      await client.query(
+        'INSERT INTO banners (image, link, alt_text, sort_order) VALUES ($1,$2,$3,$4)',
+        [clean[i].image, clean[i].link, clean[i].altText, i]
+      );
+    }
+    await client.query('COMMIT');
+
+    const saved = await client.query('SELECT * FROM banners ORDER BY sort_order ASC, id ASC');
+    res.json(saved.rows.map(mapBanner));
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
 // ===== PRICING API =====

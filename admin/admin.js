@@ -100,6 +100,7 @@ function navigateTo(page, { resetForm = true } = {}) {
     'products': 'Products',
     'orders': 'Orders',
     'add-product': 'Add Product',
+    'banners': 'Banners',
     'settings': 'Settings'
   };
   document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
@@ -109,6 +110,7 @@ function navigateTo(page, { resetForm = true } = {}) {
   if (page === 'products') loadProducts();
   if (page === 'orders') loadOrders();
   if (page === 'settings') loadSettings();
+  if (page === 'banners') loadBanners();
   if (page === 'add-product' && resetForm) resetProductForm();
 
   // Close mobile sidebar
@@ -277,6 +279,150 @@ function clearRepeatRows() {
     if (box) box.innerHTML = '';
   });
   refreshEmptyStates();
+}
+
+// ===== Banners =====
+async function loadBanners() {
+  const box = document.getElementById('bannerRows');
+  box.innerHTML = '';
+  try {
+    const res = await fetch('/api/banners');
+    if (res.ok) {
+      const banners = await res.json();
+      banners.forEach(addBannerRow);
+    }
+  } catch (e) {
+    showToast('Failed to load banners', 'error');
+  }
+  refreshBannerEmpty();
+}
+
+function addBannerRow(banner = {}) {
+  const row = document.createElement('div');
+  row.className = 'repeat-row banner-row';
+  row.innerHTML = `
+    <div class="banner-thumb">
+      <img class="banner-preview" src="${esc(banner.image)}"
+           style="${banner.image ? '' : 'display:none;'}" alt="">
+      <span class="banner-thumb-empty" style="${banner.image ? 'display:none;' : ''}">
+        <i class="fas fa-image"></i>
+      </span>
+    </div>
+    <div class="repeat-stack">
+      <div class="image-upload-wrap">
+        <input type="file" class="banner-file" accept="image/*">
+        <div class="image-upload-label"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
+      </div>
+      <input type="text" class="banner-image" placeholder="Or paste an image URL" value="${esc(banner.image)}">
+      <input type="text" class="banner-link" placeholder="Link on click (optional)" value="${esc(banner.link)}">
+      <input type="text" class="banner-alt" placeholder="Describe the image (for accessibility)" value="${esc(banner.altText)}">
+    </div>
+    <div class="banner-actions">
+      <button type="button" class="repeat-remove banner-up" title="Move up"><i class="fas fa-arrow-up"></i></button>
+      <button type="button" class="repeat-remove banner-down" title="Move down"><i class="fas fa-arrow-down"></i></button>
+      <button type="button" class="repeat-remove" title="Remove"><i class="fas fa-trash"></i></button>
+    </div>
+  `;
+
+  const urlInput = row.querySelector('.banner-image');
+  const preview = row.querySelector('.banner-preview');
+  const placeholder = row.querySelector('.banner-thumb-empty');
+
+  function showPreview(url) {
+    if (url) {
+      preview.src = url;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+    } else {
+      preview.removeAttribute('src');
+      preview.style.display = 'none';
+      placeholder.style.display = '';
+    }
+  }
+
+  urlInput.addEventListener('input', () => showPreview(urlInput.value.trim()));
+
+  row.querySelector('.banner-file').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        urlInput.value = data.url;
+        showPreview(data.url);
+        showToast('Image uploaded — save banners to apply', 'success');
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+      }
+    } catch (err) {
+      showToast('Upload failed', 'error');
+    }
+  });
+
+  row.querySelector('.banner-up').addEventListener('click', () => {
+    const prev = row.previousElementSibling;
+    if (prev?.classList.contains('banner-row')) prev.before(row);
+  });
+  row.querySelector('.banner-down').addEventListener('click', () => {
+    const next = row.nextElementSibling;
+    if (next?.classList.contains('banner-row')) next.after(row);
+  });
+  row.querySelector('.banner-actions .repeat-remove:last-child').addEventListener('click', () => {
+    row.remove();
+    refreshBannerEmpty();
+  });
+
+  document.getElementById('bannerRows').appendChild(row);
+  refreshBannerEmpty();
+}
+
+function refreshBannerEmpty() {
+  const box = document.getElementById('bannerRows');
+  if (!box) return;
+  const existing = box.querySelector('.repeat-empty');
+  const hasRows = box.querySelector('.banner-row');
+  if (hasRows && existing) existing.remove();
+  if (!hasRows && !existing) {
+    const p = document.createElement('p');
+    p.className = 'repeat-empty';
+    p.textContent = 'No banners — the homepage shows its default slides.';
+    box.appendChild(p);
+  }
+}
+
+async function saveBanners() {
+  const banners = [...document.querySelectorAll('#bannerRows .banner-row')].map(row => ({
+    image: row.querySelector('.banner-image').value.trim(),
+    link: row.querySelector('.banner-link').value.trim(),
+    altText: row.querySelector('.banner-alt').value.trim()
+  }));
+
+  const incomplete = banners.filter(b => !b.image).length;
+  if (incomplete) {
+    showToast(`${incomplete} banner${incomplete === 1 ? '' : 's'} have no image and will be skipped`, 'error');
+  }
+
+  try {
+    const res = await fetch('/api/banners', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banners })
+    });
+    if (res.ok) {
+      showToast('Banners saved!', 'success');
+      loadBanners();
+    } else if (res.status === 401) {
+      showToast('Session expired — log in again', 'error');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to save banners', 'error');
+    }
+  } catch (e) {
+    showToast('Server error', 'error');
+  }
 }
 
 function collectPlans() {

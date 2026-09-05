@@ -599,6 +599,60 @@ body {
   grid-template-columns: 1fr 38px;
 }
 
+/* thumbnail | fields | reorder+remove */
+.repeat-row.banner-row {
+  grid-template-columns: 150px 1fr 40px;
+  gap: 14px;
+}
+
+.banner-thumb {
+  aspect-ratio: 3 / 1;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #f7f8fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.banner-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-thumb-empty {
+  color: #ccc;
+  font-size: 1.4rem;
+}
+
+.banner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.banner-up,
+.banner-down {
+  border-color: #d8d8d8;
+  background: #fafafa;
+  color: #777;
+}
+
+.banner-up:hover,
+.banner-down:hover {
+  background: #1c2434;
+  border-color: #1c2434;
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .repeat-row.banner-row { grid-template-columns: 1fr; }
+  .banner-thumb { max-width: 200px; }
+  .banner-actions { flex-direction: row; justify-content: flex-end; }
+}
+
 .repeat-row input,
 .repeat-row textarea,
 .repeat-row select {
