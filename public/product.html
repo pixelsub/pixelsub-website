@@ -72,6 +72,7 @@
                 <span class="pd-price-label">Price</span>
                 <span class="pd-price-value" id="pdPriceRange"></span>
               </div>
+              <p class="pd-stock" id="pdStock"></p>
             </div>
           </div>
 
@@ -334,6 +335,15 @@
       } else {
         el.textContent = taka(lowest);
       }
+
+      const stock = document.getElementById('pdStock');
+      const sold = p.inStock === false;
+      stock.className = `pd-stock ${sold ? 'is-out' : 'is-in'}`;
+      stock.innerHTML = sold
+        ? '<i class="fas fa-circle-xmark"></i> Stock out — currently unavailable'
+        : '<i class="fas fa-circle-check"></i> In stock — ready for instant delivery';
+
+      if (sold) document.getElementById('pdOrderBox').classList.add('is-sold-out');
     }
 
     function renderPlans() {
@@ -397,12 +407,24 @@
     }
 
     function wireOrderButtons() {
-      document.getElementById('pdCompleteOrder').addEventListener('click', () => {
+      const orderBtn = document.getElementById('pdCompleteOrder');
+      const cartBtn = document.getElementById('pdAddToCart');
+
+      // Sold out: disable both rather than letting a click fail server-side.
+      if (pdProduct.inStock === false) {
+        orderBtn.disabled = true;
+        cartBtn.disabled = true;
+        orderBtn.innerHTML = '<i class="fas fa-circle-xmark"></i> Out of Stock';
+        cartBtn.hidden = true;
+        return;
+      }
+
+      orderBtn.addEventListener('click', () => {
         if (!pdSelectedPlan) return;
         buyNow(pdProduct.id, pdSelectedPlan);
       });
 
-      document.getElementById('pdAddToCart').addEventListener('click', () => {
+      cartBtn.addEventListener('click', () => {
         if (!pdSelectedPlan) return;
         // Cards render from the products list, so make sure this product is in
         // it before adding — the detail fetch may have resolved first.

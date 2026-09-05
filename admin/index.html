@@ -104,6 +104,20 @@
                 <p>Best Sellers</p>
               </div>
             </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#12a37f;"><i class="fas fa-circle-check"></i></div>
+              <div class="stat-info">
+                <h3 id="statInStock">0</h3>
+                <p>In Stock</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#d13b3b;"><i class="fas fa-circle-xmark"></i></div>
+              <div class="stat-info">
+                <h3 id="statOutStock">0</h3>
+                <p>Stock Out</p>
+              </div>
+            </div>
           </div>
           <div class="card" style="margin-top:24px;">
             <div class="card-header"><h3>Quick Actions</h3></div>
@@ -133,6 +147,7 @@
                       <th>Category</th>
                       <th>Price</th>
                       <th>Badge</th>
+                      <th>Stock</th>
                       <th>Featured</th>
                       <th>Actions</th>
                     </tr>
@@ -231,7 +246,15 @@
                       Moves this product to the front of every product list.
                     </p>
                   </div>
-                  <div class="form-group"></div>
+                  <div class="form-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="pInStock" checked> In stock
+                    </label>
+                    <p class="repeat-hint" style="margin:4px 0 0;">
+                      Untick to mark it Stock Out. It stays visible but cannot be
+                      ordered, and moves below the in-stock products.
+                    </p>
+                  </div>
                 </div>
 
                 <!-- Plans: each row has its own price, shown on the product page -->

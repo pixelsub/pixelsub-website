@@ -150,6 +150,9 @@ async function initDB() {
       -- CREATE above: existing databases already have the table.
       ALTER TABLE products ADD COLUMN IF NOT EXISTS show_first BOOLEAN DEFAULT false;
 
+      -- Defaults to true so existing products stay purchasable after the upgrade.
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT true;
+
       -- Homepage carousel slides, editable from the admin panel.
       CREATE TABLE IF NOT EXISTS banners (
         id SERIAL PRIMARY KEY,
@@ -347,7 +350,9 @@ function mapProduct(row) {
     originalPrice: row.original_price ? parseFloat(row.original_price) : null,
     image: row.image, badge: row.badge, description: row.description,
     featured: row.featured, bestSeller: row.best_seller, active: row.active,
-    showFirst: row.show_first === true
+    showFirst: row.show_first === true,
+    // Older rows predate the column, so treat null as in stock.
+    inStock: row.in_stock !== false
   };
 }
 
@@ -370,9 +375,10 @@ function mapPlan(row) {
 // ===== PRODUCTS API =====
 app.get('/api/products', async (req, res) => {
   try {
-    // Pinned products first, then oldest to newest as before.
+    // Pinned first, then in-stock before sold-out, then oldest to newest.
+    // Sinking sold-out items keeps the top of each list buyable.
     const result = await pool.query(
-      'SELECT * FROM products ORDER BY show_first DESC, id ASC'
+      'SELECT * FROM products ORDER BY show_first DESC, in_stock DESC, id ASC'
     );
     res.json(result.rows.map(mapProduct));
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -416,10 +422,10 @@ app.get('/api/products/:id', async (req, res) => {
 
 app.post('/api/products', requireAuth, async (req, res) => {
   try {
-    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst } = req.body;
+    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst, inStock } = req.body;
     const result = await pool.query(
-      'INSERT INTO products (name, category, price, original_price, image, badge, description, featured, best_seller, show_first) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
-      [name || 'Untitled', category || 'software', price || 0, originalPrice || null, image || '', badge || null, description || '', featured || false, bestSeller || false, showFirst || false]
+      'INSERT INTO products (name, category, price, original_price, image, badge, description, featured, best_seller, show_first, in_stock) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *',
+      [name || 'Untitled', category || 'software', price || 0, originalPrice || null, image || '', badge || null, description || '', featured || false, bestSeller || false, showFirst || false, inStock !== false]
     );
     const row = result.rows[0];
     res.json(mapProduct(row));
@@ -428,10 +434,10 @@ app.post('/api/products', requireAuth, async (req, res) => {
 
 app.put('/api/products/:id', requireAuth, async (req, res) => {
   try {
-    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst } = req.body;
+    const { name, category, price, originalPrice, image, badge, description, featured, bestSeller, showFirst, inStock } = req.body;
     const result = await pool.query(
-      'UPDATE products SET name=$1, category=$2, price=$3, original_price=$4, image=$5, badge=$6, description=$7, featured=$8, best_seller=$9, show_first=$10 WHERE id=$11 RETURNING *',
-      [name, category, parseFloat(price) || 0, originalPrice ? parseFloat(originalPrice) : null, image, badge || null, description, featured || false, bestSeller || false, showFirst || false, req.params.id]
+      'UPDATE products SET name=$1, category=$2, price=$3, original_price=$4, image=$5, badge=$6, description=$7, featured=$8, best_seller=$9, show_first=$10, in_stock=$11 WHERE id=$12 RETURNING *',
+      [name, category, parseFloat(price) || 0, originalPrice ? parseFloat(originalPrice) : null, image, badge || null, description, featured || false, bestSeller || false, showFirst || false, inStock !== false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(mapProduct(result.rows[0]));
@@ -724,7 +730,7 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     }
 
     const lookup = await pool.query(
-      'SELECT id, name, price FROM products WHERE id = ANY($1::int[]) AND active = true',
+      'SELECT id, name, price, in_stock FROM products WHERE id = ANY($1::int[]) AND active = true',
       [ids]
     );
     const priceMap = new Map(lookup.rows.map(r => [r.id, r]));
@@ -749,6 +755,11 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
       const product = priceMap.get(productId);
       if (!product) {
         return res.status(400).json({ error: `Product ${productId} is unavailable.` });
+      }
+      // Checked here, not just hidden in the UI: a stale cart or a direct
+      // request could otherwise order something that has sold out.
+      if (product.in_stock === false) {
+        return res.status(409).json({ error: `${product.name} is out of stock.` });
       }
 
       const qty = Math.min(Math.max(parseInt(item.qty, 10) || 1, 1), 99);

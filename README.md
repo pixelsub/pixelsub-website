@@ -96,6 +96,23 @@ With no banners configured the homepage shows three built-in gradient slides, so
 it never renders an empty carousel. A single banner hides the dots and disables
 autoplay.
 
+## Stock
+
+Each product is either in stock or stock out — one flag for the whole product,
+not per plan. Toggle it from the Stock column in the admin products table, or
+from the "In stock" checkbox on the product form. The dashboard shows how many
+of each.
+
+A stock-out product stays visible and browsable but cannot be bought: cards get
+a greyed image and a Stock Out ribbon, the product page disables its buttons,
+and the product sorts below the in-stock ones. The order endpoint also rejects
+it with a 409, so a stale cart or a direct request cannot get around the hidden
+buttons. A cart containing a stock-out item is rejected in full rather than
+partially saved.
+
+The column defaults to true, so products that existed before this was added stay
+purchasable.
+
 ## Uploaded images
 
 Images are stored in the `uploads` table as binary data and served from

@@ -329,11 +329,13 @@ function createOfferCard(product) {
     <span class="current-price">৳${product.price.toLocaleString()}</span>
   ` : `<span class="current-price">৳${product.price.toLocaleString()}</span>`;
   const productUrl = `product.html?id=${product.id}`;
+  const sold = product.inStock === false;
   return `
-    <div class="product-card" data-id="${product.id}" data-category="${product.category}">
+    <div class="product-card ${sold ? 'is-sold-out' : ''}" data-id="${product.id}" data-category="${product.category}">
       <div class="product-image" onclick="window.location.href='${productUrl}'">
         <img src="${product.image}" alt="${product.name}" loading="lazy">
         ${badgeHTML}
+        ${sold ? stockOverlay() : ''}
       </div>
       <div class="product-info">
         <h4><a href="${productUrl}">${product.name}</a></h4>
@@ -344,6 +346,11 @@ function createOfferCard(product) {
       </div>
     </div>
   `;
+}
+
+// Ribbon drawn over the image of a sold-out product.
+function stockOverlay() {
+  return '<div class="stock-overlay"><span>Stock Out</span></div>';
 }
 
 function renderSpecialOffers() {
@@ -388,18 +395,20 @@ function createProductCard(product) {
   ` : `<span class="current-price">৳${product.price.toLocaleString()}</span>`;
 
   const productUrl = `product.html?id=${product.id}`;
+  const sold = product.inStock === false;
 
   return `
-    <div class="product-card" data-id="${product.id}" data-category="${product.category}">
+    <div class="product-card ${sold ? 'is-sold-out' : ''}" data-id="${product.id}" data-category="${product.category}">
       <div class="product-image" onclick="window.location.href='${productUrl}'">
         <img src="${product.image}" alt="${product.name}" loading="lazy">
         ${badgeHTML}
+        ${sold ? stockOverlay() : ''}
       </div>
       <div class="product-info">
         <h4><a href="${productUrl}">${product.name}</a></h4>
         <div class="product-price">${priceHTML}</div>
         <a class="buy-now-btn" href="${productUrl}">
-          <i class="fas fa-bolt"></i> Buy Now
+          ${sold ? '<i class="fas fa-eye"></i> View Details' : '<i class="fas fa-bolt"></i> Buy Now'}
         </a>
       </div>
     </div>
@@ -489,7 +498,9 @@ function initSearch() {
           <img src="${p.image}" alt="${p.name}">
           <div class="sr-info">
             <h4>${p.name}</h4>
-            <p>৳${p.price.toLocaleString()}</p>
+            <p>৳${p.price.toLocaleString()}${
+              p.inStock === false ? ' <span class="sr-out">Stock out</span>' : ''
+            }</p>
           </div>
         </div>
       `).join('');
@@ -538,6 +549,11 @@ function cartKey(id, planId) {
 function addToCart(productId, plan = null) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
+
+  if (product.inStock === false) {
+    showToast(`${product.name} is out of stock`, 'error');
+    return;
+  }
 
   const planId = plan?.id ?? null;
   const key = cartKey(productId, planId);
@@ -684,6 +700,12 @@ function priceFor(basePrice, plan, type) {
 function buyNow(productId, plan = null) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
+
+  if (product.inStock === false) {
+    showToast(`${product.name} is out of stock`, 'error');
+    return;
+  }
+
   cart = [{
     id: productId,
     qty: 1,

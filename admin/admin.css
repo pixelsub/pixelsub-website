@@ -718,6 +718,35 @@ body {
   background: #fff;
 }
 
+/* Stock state, clickable straight from the products table. */
+.stock-toggle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.stock-toggle.in {
+  color: #0c7a5f;
+  background: #e8f7f2;
+  border: 1px solid #bfe8dc;
+}
+
+.stock-toggle.in:hover { background: #d5f0e7; }
+
+.stock-toggle.out {
+  color: #a82c2c;
+  background: #fdeeee;
+  border: 1px solid #f5cccc;
+}
+
+.stock-toggle.out:hover { background: #fbdede; }
+
 /* Marks the product pinned to the front of every list. */
 .pin-tag {
   display: inline-flex;

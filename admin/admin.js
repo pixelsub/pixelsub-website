@@ -138,6 +138,10 @@ async function loadDashboard() {
     document.getElementById('statCategories').textContent = cats.size;
     document.getElementById('statFeatured').textContent = allProducts.filter(p => p.featured).length;
     document.getElementById('statBestSellers').textContent = allProducts.filter(p => p.bestSeller).length;
+
+    const outOfStock = allProducts.filter(p => p.inStock === false).length;
+    document.getElementById('statInStock').textContent = allProducts.length - outOfStock;
+    document.getElementById('statOutStock').textContent = outOfStock;
   } catch (e) {
     showToast('Failed to load dashboard', 'error');
   }
@@ -157,7 +161,7 @@ async function loadProducts() {
 function renderProductsTable() {
   const tbody = document.getElementById('productsTableBody');
   if (!allProducts.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#999;">No products found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#999;">No products found</td></tr>';
     return;
   }
 
@@ -173,6 +177,13 @@ function renderProductsTable() {
         <td>${esc(p.category)}</td>
         <td><strong style="color:#1560f0;">৳${p.price.toLocaleString()}</strong>${p.originalPrice ? `<br><s style="color:#999;font-size:0.75rem;">৳${p.originalPrice.toLocaleString()}</s>` : ''}</td>
         <td>${badgeHTML}</td>
+        <td>
+          <button class="stock-toggle ${p.inStock === false ? 'out' : 'in'}"
+                  onclick="toggleStock(${p.id})"
+                  title="Click to switch">
+            ${p.inStock === false ? 'Stock Out' : 'In Stock'}
+          </button>
+        </td>
         <td>${p.featured ? '<i class="fas fa-star" style="color:#f39c12;"></i>' : '—'}</td>
         <td>
           <div class="table-actions">
@@ -450,6 +461,35 @@ function collectReviews() {
   })).filter(r => r.author);
 }
 
+// Flips a product's stock state straight from the table, so marking something
+// sold out does not mean opening the edit form.
+async function toggleStock(id) {
+  const product = allProducts.find(p => p.id === id);
+  if (!product) return;
+
+  const next = product.inStock === false;
+
+  try {
+    const res = await fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...product, inStock: next })
+    });
+
+    if (res.ok) {
+      product.inStock = next;
+      renderProductsTable();
+      showToast(`${product.name} is now ${next ? 'in stock' : 'stock out'}`, 'success');
+    } else if (res.status === 401) {
+      showToast('Session expired — log in again', 'error');
+    } else {
+      showToast('Could not update stock', 'error');
+    }
+  } catch (e) {
+    showToast('Server error', 'error');
+  }
+}
+
 // ===== Product Form =====
 function initProductForm() {
   document.getElementById('productForm').addEventListener('submit', async (e) => {
@@ -466,7 +506,8 @@ function initProductForm() {
       description: document.getElementById('pDescription').value,
       featured: document.getElementById('pFeatured').checked,
       bestSeller: document.getElementById('pBestSeller').checked,
-      showFirst: document.getElementById('pShowFirst').checked
+      showFirst: document.getElementById('pShowFirst').checked,
+      inStock: document.getElementById('pInStock').checked
     };
 
     const plans = collectPlans();
@@ -557,6 +598,7 @@ async function editProduct(id) {
   document.getElementById('pFeatured').checked = product.featured;
   document.getElementById('pBestSeller').checked = product.bestSeller;
   document.getElementById('pShowFirst').checked = product.showFirst === true;
+  document.getElementById('pInStock').checked = product.inStock !== false;
 
   document.getElementById('productFormTitle').textContent = 'Edit Product';
   document.getElementById('productFormBtn').innerHTML = '<i class="fas fa-save"></i> Update Product';
@@ -589,6 +631,9 @@ async function editProduct(id) {
 
 function resetProductForm() {
   document.getElementById('productForm').reset();
+  // form.reset() restores the `checked` attribute, so In stock stays ticked for
+  // a new product — but set it explicitly rather than relying on that.
+  document.getElementById('pInStock').checked = true;
   document.getElementById('editProductId').value = '';
   document.getElementById('productFormTitle').textContent = 'Add New Product';
   document.getElementById('productFormBtn').innerHTML = '<i class="fas fa-save"></i> Save Product';

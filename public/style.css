@@ -796,6 +796,57 @@ input, select, textarea {
   color: #fff;
 }
 
+/* ---------- Sold out ---------- */
+.stock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 36, 52, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.stock-overlay span {
+  background: #d13b3b;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  border-radius: 4px;
+  transform: rotate(-6deg);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Dim the image but keep the name and price legible. */
+.product-card.is-sold-out .product-image img {
+  filter: grayscale(0.7);
+}
+
+.product-card.is-sold-out:hover .product-image img {
+  transform: none;
+}
+
+.product-card.is-sold-out .buy-now-btn {
+  background: var(--text-muted);
+}
+
+.product-card.is-sold-out .buy-now-btn:hover {
+  background: var(--text-secondary);
+  box-shadow: none;
+}
+
+.sr-out {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #d13b3b;
+}
+
 .badge-sale { background: var(--primary); }
 /* Darkened from #f39c12: white on that was 2.19:1, effectively unreadable. */
 .badge-hot { background: #c26f02; }
@@ -1605,6 +1656,30 @@ input, select, textarea {
   border-radius: 4px;
 }
 
+/* Stock line under the price on the product page. */
+.pd-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.pd-stock.is-in {
+  color: #0c7a5f;
+  background: #e8f7f2;
+  border: 1px solid #bfe8dc;
+}
+
+.pd-stock.is-out {
+  color: #a82c2c;
+  background: #fdeeee;
+  border: 1px solid #f5cccc;
+}
+
 /* ---------- Tabs ---------- */
 .pd-tabs {
   margin-top: 22px;
@@ -1931,6 +2006,33 @@ input, select, textarea {
 }
 
 .pd-btn-addcart:hover { background: var(--text-primary); color: #fff; }
+
+/* Sold-out order box: buttons inert, plans no longer selectable. */
+.pd-btn-order:disabled,
+.pd-btn-addcart:disabled {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.pd-btn-order:disabled:hover,
+.pd-btn-addcart:disabled:hover {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+  transform: none;
+}
+
+.pd-order-box.is-sold-out .pd-plans {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.pd-order-box.is-sold-out .pd-offer-strip {
+  background: #f4f5f7;
+}
+
+.pd-order-box.is-sold-out .pd-offer-strip i { color: var(--text-muted); }
 
 .pd-secure {
   text-align: center;
