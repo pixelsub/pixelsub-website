@@ -2101,8 +2101,18 @@ input, select, textarea {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
-  .pd-layout { grid-template-columns: 1fr; }
+  .pd-layout {
+    grid-template-columns: 1fr;
+  }
   .pd-order-box { position: static; }
+
+  /* Single column: hero first, then the order box, with the
+     Description / Reviews / FAQ tabs last. Flattening .pd-main lets the
+     hero and the tabs be ordered independently of each other. */
+  .pd-main { display: contents; }
+  .pd-hero { order: 1; }
+  .pd-order-box { order: 2; }
+  .pd-tabs { order: 3; margin-top: 0; }
 }
 
 @media (max-width: 640px) {
