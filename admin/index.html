@@ -328,6 +328,12 @@
               <span class="admin-badge" id="orderCount">0 orders</span>
             </div>
             <div class="card-body">
+              <div class="order-tabs" id="orderTabs">
+                <button class="order-tab active" data-status="all" onclick="setOrderFilter('all')">All <span class="order-tab-count" id="tabCountAll">0</span></button>
+                <button class="order-tab" data-status="pending" onclick="setOrderFilter('pending')">⏳ Pending <span class="order-tab-count" id="tabCountPending">0</span></button>
+                <button class="order-tab" data-status="delivered" onclick="setOrderFilter('delivered')">📦 Delivered <span class="order-tab-count" id="tabCountDelivered">0</span></button>
+                <button class="order-tab" data-status="cancelled" onclick="setOrderFilter('cancelled')">❌ Cancelled <span class="order-tab-count" id="tabCountCancelled">0</span></button>
+              </div>
               <div class="table-responsive">
                 <table class="data-table">
                   <thead>

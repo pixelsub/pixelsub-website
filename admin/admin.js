@@ -847,23 +847,38 @@ function showToast(msg, type = 'success') {
 }
 
 // ===== Orders =====
-async function loadOrders() {
-  try {
-    const res = await fetch('/api/orders');
-    const orders = await res.json();
-    document.getElementById('orderCount').textContent = `${orders.length} orders`;
+let orderFilter = 'all';
 
-    const tbody = document.getElementById('ordersTableBody');
-    if (orders.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#999;">No orders yet</td></tr>';
-      return;
-    }
+function setOrderFilter(status) {
+  orderFilter = status;
+  document.querySelectorAll('#orderTabs .order-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === status);
+  });
+  renderOrders();
+}
 
-    // Keep the raw orders around so row actions can look up values by id
-    // instead of smuggling customer-controlled text through onclick attributes.
-    allOrders = orders;
+function renderOrders() {
+  const tbody = document.getElementById('ordersTableBody');
+  if (!tbody) return;
 
-    tbody.innerHTML = orders.map(o => {
+  const counts = { all: allOrders.length, pending: 0, delivered: 0, cancelled: 0 };
+  for (const o of allOrders) {
+    if (counts[o.status] !== undefined && o.status !== 'all') counts[o.status]++;
+  }
+  for (const [key, val] of Object.entries(counts)) {
+    const badge = document.getElementById('tabCount' + key[0].toUpperCase() + key.slice(1));
+    if (badge) badge.textContent = val;
+  }
+
+  const orders = orderFilter === 'all' ? allOrders : allOrders.filter(o => o.status === orderFilter);
+  document.getElementById('orderCount').textContent = `${orders.length} orders`;
+
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#999;">No ${orderFilter === 'all' ? '' : orderFilter + ' '}orders</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
       const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
       const itemNames = items ? items.map(i => `${i.name} x${i.qty}`).join(', ') : '';
       const date = new Date(o.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -900,7 +915,16 @@ async function loadOrders() {
           </td>
         </tr>
       `;
-    }).join('');
+  }).join('');
+}
+
+async function loadOrders() {
+  try {
+    const res = await fetch('/api/orders');
+    // Keep the raw orders around so row actions can look up values by id
+    // instead of smuggling customer-controlled text through onclick attributes.
+    allOrders = await res.json();
+    renderOrders();
   } catch (e) {
     showToast('Failed to load orders', 'error');
   }
@@ -913,7 +937,10 @@ async function updateOrderStatus(orderId, status) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
+    const order = allOrders.find(o => o.id === orderId);
+    if (order) order.status = status;
     showToast(`Order #${orderId} → ${status}`, 'success');
+    renderOrders();
   } catch (e) {
     showToast('Failed to update', 'error');
   }
