@@ -490,12 +490,14 @@ async function renderCustomerReviews() {
       document.getElementById('customer-reviews').style.display = 'none';
       return;
     }
-    gallery.innerHTML = screenshots.map(s => `
+    const cards = screenshots.map(s => `
       <div class="review-card" onclick="openReviewImage('${s.image_url}')">
         <img src="${s.image_url}" alt="${s.caption || 'Customer Review'}" loading="lazy">
         ${s.caption ? `<p class="review-caption">${s.caption}</p>` : ''}
       </div>
     `).join('');
+    // Duplicate cards for seamless infinite scroll
+    gallery.innerHTML = `<div class="reviews-track">${cards}${cards}</div>`;
   } catch(e) {
     document.getElementById('customer-reviews').style.display = 'none';
   }
