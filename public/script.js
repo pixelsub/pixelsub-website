@@ -88,6 +88,13 @@ async function applyBranding() {
 
   applySocialLinks();
   mountWhatsappButton();
+
+  // Set support section WhatsApp link
+  const digits = String(siteSettings.whatsapp || '').replace(/[^0-9]/g, '');
+  const supportBtn = document.getElementById('supportWhatsappBtn');
+  if (supportBtn && digits) {
+    supportBtn.href = `https://wa.me/${digits}?text=${encodeURIComponent('হ্যালো, আমার একটা সমস্যা আছে। সাহায্য করুন প্লিজ।')}`;
+  }
 }
 
 // Floating WhatsApp contact button. Injected rather than written into each
