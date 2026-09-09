@@ -2281,10 +2281,13 @@ input, select, textarea {
 .review-lb-close:hover { background: #f0f0f0; }
 
 /* ===== Support CTA Card ===== */
+.support-section-wrap {
+  width: 100%;
+}
 .support-card {
-  background: linear-gradient(135deg, #1560f0 0%, #0d47a1 100%);
-  border-radius: 20px;
-  padding: 50px 40px;
+  background: linear-gradient(135deg, #1a6ef5 0%, #0d47c2 60%, #0a3699 100%);
+  border-radius: 0;
+  padding: 80px 40px;
   text-align: center;
   color: #fff;
   position: relative;
@@ -2292,32 +2295,46 @@ input, select, textarea {
 }
 .support-card::before {
   content: '';
-  position: absolute; top: -50%; right: -50%;
-  width: 200%; height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%);
+  position: absolute; top: -40%; right: -20%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 60%);
   pointer-events: none;
+}
+.support-card::after {
+  content: 'PixelSub';
+  position: absolute;
+  bottom: -20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.05);
+  letter-spacing: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 .support-tag {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  opacity: 0.8;
-  margin-bottom: 12px;
+  opacity: 0.75;
+  margin-bottom: 16px;
 }
 .support-heading {
-  font-size: 1.8rem;
+  font-size: 3rem;
   font-weight: 800;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   color: #fff;
+  line-height: 1.2;
 }
 .support-desc {
   font-size: 1rem;
-  line-height: 1.7;
-  opacity: 0.9;
-  margin-bottom: 28px;
-  max-width: 450px;
+  line-height: 1.8;
+  opacity: 0.88;
+  margin-bottom: 36px;
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -2325,27 +2342,30 @@ input, select, textarea {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 32px;
-  border-radius: 12px;
+  padding: 16px 36px;
+  border-radius: 50px;
   font-size: 1rem;
   font-weight: 700;
   text-decoration: none;
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
-  border: none;
+  border: 2px solid rgba(255,255,255,0.4);
 }
 .support-btn-wa {
-  background: rgba(255,255,255,0.95);
-  color: #25D366;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  backdrop-filter: blur(6px);
 }
 .support-btn-wa:hover {
+  background: rgba(255,255,255,0.25);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
-.support-btn-wa i { font-size: 1.3rem; }
+.support-btn-wa i { font-size: 1.2rem; }
 @media(max-width:600px) {
-  .support-card { padding: 36px 24px; border-radius: 16px; }
-  .support-heading { font-size: 1.4rem; }
+  .support-card { padding: 60px 24px; }
+  .support-heading { font-size: 2rem; }
   .support-desc { font-size: 0.9rem; }
-  .support-btn { padding: 12px 24px; font-size: 0.9rem; }
+  .support-btn { padding: 14px 28px; font-size: 0.9rem; }
+  .support-card::after { font-size: 4rem; }
 }
