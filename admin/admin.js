@@ -101,6 +101,7 @@ function navigateTo(page, { resetForm = true } = {}) {
     'orders': 'Orders',
     'add-product': 'Add Product',
     'banners': 'Banners',
+    'reviews': 'Reviews',
     'settings': 'Settings'
   };
   document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
@@ -111,6 +112,7 @@ function navigateTo(page, { resetForm = true } = {}) {
   if (page === 'orders') loadOrders();
   if (page === 'settings') loadSettings();
   if (page === 'banners') loadBanners();
+  if (page === 'reviews') loadReviewScreenshots();
   if (page === 'add-product' && resetForm) resetProductForm();
 
   // Close mobile sidebar
@@ -961,4 +963,81 @@ function viewOrderWhatsApp(id) {
     `Hi ${order.customer_name || ''}, your Order #${id} (৳${total}) has been confirmed! Thank you for choosing PixelSub.`
   );
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+}
+
+// ===== Customer Review Screenshots =====
+async function loadReviewScreenshots() {
+  try {
+    const res = await fetch('/api/customer-screenshots');
+    const screenshots = await res.json();
+    document.getElementById('reviewCount').textContent = screenshots.length;
+    const container = document.getElementById('reviewScreenshots');
+    if (screenshots.length === 0) {
+      container.innerHTML = '<p style="color:#999;text-align:center;grid-column:1/-1;padding:40px;">No review screenshots yet. Upload one above!</p>';
+      return;
+    }
+    container.innerHTML = screenshots.map(s => `
+      <div style="position:relative;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <img src="${esc(s.image_url)}" alt="${esc(s.caption)}" style="width:100%;height:200px;object-fit:cover;display:block;">
+        ${s.caption ? `<p style="padding:6px 10px;font-size:0.8rem;color:#555;margin:0;">${esc(s.caption)}</p>` : ''}
+        <button onclick="deleteReviewScreenshot(${s.id})" style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(231,76,60,0.9);color:#fff;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;justify-content:center;" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `).join('');
+  } catch(e) {
+    showToast('Failed to load screenshots', 'error');
+  }
+}
+
+async function uploadReviewScreenshot() {
+  const fileInput = document.getElementById('reviewImageFile');
+  const caption = document.getElementById('reviewCaption').value.trim();
+  const btn = document.getElementById('reviewUploadBtn');
+
+  if (!fileInput.files[0]) {
+    showToast('Please select an image', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+  try {
+    // First upload the image
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed');
+
+    // Then save the screenshot record
+    const res = await fetch('/api/customer-screenshots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: uploadData.url, caption })
+    });
+    if (!res.ok) throw new Error('Failed to save');
+
+    showToast('Screenshot uploaded!', 'success');
+    fileInput.value = '';
+    document.getElementById('reviewCaption').value = '';
+    loadReviewScreenshots();
+  } catch(e) {
+    showToast(e.message || 'Upload failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-upload"></i> Upload';
+  }
+}
+
+async function deleteReviewScreenshot(id) {
+  if (!confirm('Delete this screenshot?')) return;
+  try {
+    await fetch(`/api/customer-screenshots/${id}`, { method: 'DELETE' });
+    showToast('Deleted!', 'success');
+    loadReviewScreenshots();
+  } catch(e) {
+    showToast('Failed to delete', 'error');
+  }
 }

@@ -199,6 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderBestSellers();
   renderAllProducts();
   renderFeatures();
+  renderCustomerReviews();
   initSearch();
   initCart();
   initScrollEffects();
@@ -476,6 +477,45 @@ function renderFeatures() {
       <p>${f.desc}</p>
     </div>
   `).join('');
+}
+
+// ============ Customer Reviews ============
+async function renderCustomerReviews() {
+  const gallery = document.getElementById('reviewsGallery');
+  if (!gallery) return;
+  try {
+    const res = await fetch('/api/customer-screenshots');
+    const screenshots = await res.json();
+    if (screenshots.length === 0) {
+      document.getElementById('customer-reviews').style.display = 'none';
+      return;
+    }
+    gallery.innerHTML = screenshots.map(s => `
+      <div class="review-card" onclick="openReviewImage('${s.image_url}')">
+        <img src="${s.image_url}" alt="${s.caption || 'Customer Review'}" loading="lazy">
+        ${s.caption ? `<p class="review-caption">${s.caption}</p>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('customer-reviews').style.display = 'none';
+  }
+}
+
+// Lightbox for review images
+function openReviewImage(src) {
+  const overlay = document.createElement('div');
+  overlay.className = 'review-lightbox';
+  overlay.innerHTML = `
+    <div class="review-lightbox-inner" onclick="event.stopPropagation()">
+      <img src="${src}" alt="Review">
+      <button class="review-lb-close" onclick="this.closest('.review-lightbox').remove(); document.body.style.overflow='';">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  overlay.addEventListener('click', () => { overlay.remove(); document.body.style.overflow = ''; });
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
 }
 
 // ============ Search ============

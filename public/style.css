@@ -2207,3 +2207,63 @@ input, select, textarea {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
+
+/* ===== Customer Reviews Gallery ===== */
+.reviews-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 10px 0;
+}
+@media(max-width:600px) {
+  .reviews-gallery { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+.review-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+.review-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+@media(max-width:600px) {
+  .review-card img { height: 180px; }
+}
+.review-caption {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #555;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Lightbox */
+.review-lightbox {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; cursor: pointer;
+}
+.review-lightbox-inner {
+  position: relative; max-width: 600px; width: 100%; cursor: default;
+}
+.review-lightbox-inner img {
+  width: 100%; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.review-lb-close {
+  position: absolute; top: -12px; right: -12px; width: 36px; height: 36px;
+  border-radius: 50%; border: none; background: #fff; color: #333;
+  font-size: 1rem; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.review-lb-close:hover { background: #f0f0f0; }

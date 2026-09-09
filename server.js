@@ -167,6 +167,16 @@ async function initDB() {
         active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      -- Customer review / chat screenshots for the homepage
+      CREATE TABLE IF NOT EXISTS customer_screenshots (
+        id SERIAL PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        caption VARCHAR(255) DEFAULT '',
+        sort_order INTEGER DEFAULT 0,
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // Check if products exist
@@ -906,6 +916,34 @@ app.put('/api/banners', requireAuth, async (req, res) => {
 // Single source of truth for plan/type multipliers so the UI can't drift from the server.
 app.get('/api/pricing', (req, res) => {
   res.json({ plans: PLAN_MULTIPLIERS, types: TYPE_MULTIPLIERS });
+});
+
+// ===== Customer Screenshots (Reviews) =====
+app.get('/api/customer-screenshots', async (req, res) => {
+  if (!HAS_DB) return res.json([]);
+  try {
+    const result = await pool.query('SELECT * FROM customer_screenshots WHERE active = true ORDER BY sort_order ASC, id DESC');
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: 'Failed to load screenshots' }); }
+});
+
+app.post('/api/customer-screenshots', requireAuth, async (req, res) => {
+  const { image_url, caption } = req.body;
+  if (!image_url) return res.status(400).json({ error: 'Image URL required' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO customer_screenshots (image_url, caption) VALUES ($1, $2) RETURNING *',
+      [image_url, caption || '']
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: 'Failed to save screenshot' }); }
+});
+
+app.delete('/api/customer-screenshots/:id', requireAuth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM customer_screenshots WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Failed to delete' }); }
 });
 
 // ===== Catch-all =====
