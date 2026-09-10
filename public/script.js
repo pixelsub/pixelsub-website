@@ -74,10 +74,12 @@ async function applyBranding() {
     const text = logo.querySelector('span');
 
     if (logoUrl && icon) {
-      // Replace the icon glyph with the uploaded image, keeping the layout.
+      // Admin has uploaded a custom logo — replace the static one.
       icon.innerHTML = `<img src="${logoUrl}" alt="${name}">`;
       icon.classList.add('logo-icon-image');
+      icon.style.background = 'transparent';
     }
+    // If no logoUrl, keep the static favicon.png already in the HTML.
     if (text) text.textContent = name;
   });
 
