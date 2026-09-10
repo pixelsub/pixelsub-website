@@ -318,6 +318,13 @@ input, select, textarea {
   overflow: hidden;
 }
 
+.logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 /* Applied when an uploaded logo replaces the default icon glyph. */
 .logo-icon-image {
   background: transparent;
